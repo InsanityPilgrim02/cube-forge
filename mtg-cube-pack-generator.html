@@ -1,0 +1,3550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG Cube Draft Pack Generator</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-2: #334155;
+      --muted: #64748b;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-soft: #eef2ff;
+      --radius: 0.75rem;
+      --radius-sm: 0.5rem;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --text-xs: 0.75rem;
+      --text-sm: 0.8125rem;
+      --text-md: 0.875rem;
+      --text-base: 0.9375rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.5rem;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: var(--text-base);
+    }
+    .wrap { max-width: 72rem; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+    header {
+      position: relative;
+      text-align: center;
+      margin-bottom: var(--space-6);
+    }
+    header h1 {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      margin: 0 0 var(--space-2);
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    header p { color: var(--muted); margin: 0; font-size: var(--text-md); }
+    .about-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      padding: 0.4rem 0.75rem;
+      background: var(--surface);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+    }
+    .about-btn:hover:not(:disabled) {
+      background: var(--primary-soft);
+      border-color: #c7d2fe;
+      color: #3730a3;
+    }
+    .about-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(15, 23, 42, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+    }
+    .about-overlay.hidden { display: none; }
+    .about-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+      max-width: 36rem;
+      width: 100%;
+      max-height: min(85vh, 40rem);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .about-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--border);
+      flex: 0 0 auto;
+    }
+    .about-modal-header h2 {
+      margin: 0;
+      font-size: var(--text-lg);
+      font-weight: 600;
+    }
+    .about-modal-body {
+      padding: var(--space-4) var(--space-5) var(--space-5);
+      overflow-y: auto;
+      font-size: var(--text-md);
+      color: var(--text-2);
+    }
+    .about-modal-body h3 {
+      margin: 1.1rem 0 0.4rem;
+      font-size: var(--text-md);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .about-modal-body h3:first-child { margin-top: 0; }
+    .about-modal-body p { margin: 0 0 0.5rem; }
+    .about-modal-body ul {
+      margin: 0 0 0.5rem;
+      padding-left: 1.2rem;
+    }
+    .about-modal-body li { margin: 0.25rem 0; }
+    .about-modal-body code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+      background: var(--surface-2);
+      padding: 0.1em 0.35em;
+      border-radius: 0.25rem;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-5);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow);
+    }
+    section h2 {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin: 0 0 var(--space-4);
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+    .drop-zone svg { width: 3rem; height: 3rem; color: #94a3b8; margin: 0 auto 0.75rem; display: block; }
+    .drop-zone .hint { color: #64748b; }
+    .drop-zone .hint strong { color: #334155; }
+    .cobra-import {
+      margin-top: var(--space-3);
+      padding: var(--space-4);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .cobra-import:first-of-type { margin-top: 0; }
+    .cobra-import-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text-2);
+      margin-bottom: var(--space-2);
+    }
+    .cobra-import-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      align-items: center;
+    }
+    .cobra-import-row input[type="text"] {
+      flex: 1 1 14rem;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.75rem;
+      font-size: var(--text-md);
+      min-width: 0;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .cobra-import-row input[type="text"]:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+    }
+    .csv-import.dragover {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+    .csv-file-label {
+      flex: 1 1 14rem;
+      min-width: 0;
+      font-size: var(--text-md);
+      color: var(--muted);
+      padding: 0.55rem 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status { margin-top: var(--space-3); font-size: var(--text-md); }
+    .status.ok { color: #16a34a; }
+    .status.err { color: #dc2626; }
+    .status.warn { color: #d97706; }
+    .status.info { color: var(--muted); }
+
+    /* Panel cards: pool report, deal info, leftover filters */
+    .report-box {
+      margin-top: 0;
+      padding: var(--space-4);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-size: var(--text-md);
+      color: var(--text-2);
+    }
+    .report-box .panel-title {
+      margin: 0 0 var(--space-3);
+      font-size: var(--text-md);
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+    @media (min-width: 520px) {
+      .stat-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .stat-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    .stat-grid.cols-5 {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    @media (max-width: 640px) {
+      .stat-grid.cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    .stat {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      min-width: 0;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+    }
+    .stat-grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .stat .stat-label {
+      display: block;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.15rem;
+    }
+    .stat .stat-value {
+      display: block;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.25;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat.accent {
+      background: var(--primary-soft);
+      border-color: #c7d2fe;
+    }
+    .stat.accent .stat-value { color: #3730a3; }
+    .stat.accent .stat-label { color: #6366f1; }
+    .stat-toggle {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+    }
+    .stat-toggle:hover {
+      border-color: #a5b4fc;
+    }
+    .stat-toggle:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+    }
+    .stat-toggle:not(.accent) {
+      opacity: 0.72;
+    }
+    .stat-toggle.accent {
+      opacity: 1;
+    }
+    .mono-stat {
+      text-align: center;
+    }
+    .deal-seed {
+      font-family: var(--mono);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      word-break: break-all;
+      color: var(--text);
+    }
+    .panel-divider {
+      height: 1px;
+      background: var(--border);
+      margin: var(--space-3) 0;
+      border: 0;
+    }
+    .leftover-filters {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+    }
+    .leftover-filters .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .leftover-filters .filter-group > span {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-right: var(--space-1);
+      min-width: 3.25rem;
+    }
+    .leftover-filters label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      cursor: pointer;
+      user-select: none;
+      color: var(--text-2);
+      font-size: var(--text-sm);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem 0.2rem 0.4rem;
+    }
+    .leftover-filters input { accent-color: var(--primary); }
+    .leftover-pack .pack-body li[hidden] { display: none !important; }
+    .workspace-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      align-items: start;
+    }
+    /* Two columns only once leftovers exist — otherwise match Load Cube full width */
+    @media (min-width: 960px) {
+      .workspace-row.has-side {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+    }
+    .workspace-left {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-width: 0;
+    }
+    .workspace-left > section {
+      margin-bottom: 0;
+    }
+    .workspace-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-width: 0;
+    }
+    .workspace-side .report-box {
+      margin-top: 0;
+    }
+    #leftoverPackMount:not(.hidden) {
+      min-width: 0;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #leftoverPackMount .leftover-pack {
+      max-width: none;
+      width: 100%;
+      box-sizing: border-box;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #leftoverPackMount .leftover-pack .pack-body {
+      flex: 1 1 auto;
+      max-height: none;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .deal-rules {
+      margin: 0;
+      padding-left: 1.1rem;
+      font-size: var(--text-sm);
+      color: var(--text-2);
+      line-height: 1.45;
+    }
+    .deal-rules li { margin: 0.2rem 0; }
+    .deal-fail-reasons li { color: #b91c1c; }
+    .config-flags {
+      margin-top: var(--space-3);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2) var(--space-4);
+    }
+    .flag-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      user-select: none;
+    }
+    .flag-check input {
+      accent-color: var(--primary);
+      width: 1rem;
+      height: 1rem;
+    }
+    .seed-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: flex-end;
+      margin-top: 1rem;
+    }
+    .seed-row label { margin-bottom: 0.25rem; }
+    .seed-row input[type="text"] {
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9375rem;
+      min-width: 12rem;
+      font-family: ui-monospace, monospace;
+    }
+    .seed-row input[type="text"]:focus {
+      border-color: #6366f1;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    }
+    label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-2);
+      margin-bottom: var(--space-1);
+    }
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.75rem;
+      font-size: var(--text-md);
+      outline: none;
+      background: var(--surface);
+      color: var(--text);
+    }
+    input[type="number"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+    }
+
+    .btn-row {
+      margin-top: var(--space-4);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    button {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 1rem;
+      font-size: var(--text-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+    .btn-dark { background: #334155; color: #fff; }
+    .btn-dark:hover:not(:disabled) { background: #1e293b; }
+    .btn-sm {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: 0.45rem 0.75rem;
+      background: #f1f5f9;
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .btn-sm:hover:not(:disabled) { background: #e2e8f0; }
+
+    .help { font-size: var(--text-xs); color: #94a3b8; margin-top: var(--space-3); }
+
+    .results-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+    .results-header h2 { margin: 0; font-size: var(--text-lg); }
+    .results-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+    .packs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 640px) {
+      .packs { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      .packs { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .pack-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .pack-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.875rem;
+    }
+    .pack-header .count { color: #64748b; }
+    .pack-body { padding: 0.5rem 0.75rem; }
+    .pack-body ul { list-style: none; margin: 0; padding: 0; }
+    .pack-body li {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.35rem;
+      border-radius: 0.25rem;
+      font-size: 0.8125rem;
+      margin-bottom: 0.15rem;
+    }
+    .rarity-tag {
+      display: inline-block;
+      width: 2.25rem;
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .rarity-tag.rare { color: #d97706; }
+    .rarity-tag.uncommon { color: #94a3b8; }
+    .rarity-tag.common { color: #000; }
+    .card-name { color: #1e293b; flex: 1 1 auto; min-width: 0; cursor: help; }
+    .color-id {
+      flex: 0 0 auto;
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #334155;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    #cardPreview {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: auto;
+      display: none;
+      width: 244px;
+      padding: 6px;
+      background: #0f172a;
+      border-radius: 0.6rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    #cardPreview img {
+      display: block;
+      width: 232px;
+      height: auto;
+      border-radius: 0.45rem;
+      background: #1e293b;
+    }
+    #cardPreview .preview-status {
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 2rem 0.5rem;
+    }
+
+    .hidden { display: none !important; }
+
+    @media print {
+      @page { size: auto; margin: 0.4in; }
+      body { background: #fff !important; color: #000 !important; }
+      .no-print, #cardPreview { display: none !important; }
+      .wrap { max-width: none; padding: 0; margin: 0; }
+      section { border: none; box-shadow: none; padding: 0; margin: 0; background: transparent; }
+      .packs {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+        padding: 15px !important;
+      }
+      .pack-card {
+        border: 1pt solid #000 !important;
+        border-radius: 0 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        min-height: 2.4in;
+      }
+      .pack-card:nth-child(9n) { page-break-after: always; }
+      .pack-header {
+        background: transparent !important;
+        border-bottom: 1pt solid #000 !important;
+        padding: 4px 6px !important;
+      }
+      .pack-body { padding: 4px 6px !important; }
+      .pack-body li { margin: 0; padding: 1px 2px; font-size: 9pt; }
+      .card-name { color: #000 !important; }
+      .color-id { color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="no-print">
+      <button type="button" id="aboutBtn" class="about-btn">About</button>
+      <h1>MTG Cube Draft Pack Generator</h1>
+      <p>Upload your Cube, set pack composition, and generate draft packs that respect normal draft pack rules.</p>
+    </header>
+
+    <div id="aboutOverlay" class="about-overlay hidden no-print" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <div class="about-modal">
+        <div class="about-modal-header">
+          <h2 id="aboutTitle">About this app</h2>
+          <button type="button" id="aboutCloseBtn" class="btn-sm">Close</button>
+        </div>
+        <div class="about-modal-body">
+          <p>Generate legal cube draft packs from a CSV or Cube Cobra list. Pack building stays on your device; only optional image preload and Cube Cobra import need the network.</p>
+
+          <h3>1. Load Cube</h3>
+          <ul>
+            <li><strong>Option A — CSV:</strong> Browse or drop a CSV with at least <code>Name</code> and <code>Rarity</code>. Optional columns: quantity, colour, set, collector number, mana cost, type line.</li>
+            <li><strong>Option B — Cube Cobra:</strong> Paste a cube list URL or ID. Loads official card data (mana costs, set, types) over the network once; packs still generate offline afterward.</li>
+            <li>If the CSV has no quantity column, set copies per rarity under “Cube Quantities” and apply.</li>
+          </ul>
+
+          <h3>2. Card images</h3>
+          <ul>
+            <li>Hover or tap a card name to show its image when one is already cached on this device.</li>
+            <li><strong>Preload card images</strong> downloads from Scryfall (set + collector number when available, plus that set’s five basic lands) and stores them in the browser cache.</li>
+            <li><strong>Clear saved card images</strong> removes that cache. Preload uses the network; normal browsing does not.</li>
+          </ul>
+
+          <h3>3. Pack configuration</h3>
+          <ul>
+            <li>Set number of packs and how many non-land commons, uncommons, and rares/mythics each pack should contain.</li>
+            <li>Optional <strong>seed</strong>: same seed + same cube + same settings reproduces the same deal. Leave blank for a random seed, or use “New random seed”.</li>
+          </ul>
+
+          <h3>4. Pack rules (every pack)</h3>
+          <ul>
+            <li>Exact non-land common / uncommon / rare counts as configured.</li>
+            <li><strong>One land slot:</strong> 33% chance of a cube common land (if any remain), otherwise a random basic (Plains, Island, Swamp, Mountain, Forest).</li>
+            <li>At least <strong>2 mono-colour</strong> cards of each colour (W, U, B, R, G). Multicolour, colourless, and basics do not count toward those minimums.</li>
+            <li>No duplicate card names in a pack.</li>
+            <li>Cube quantities are never exceeded. Invalid deals are re-rolled (up to 100 attempts).</li>
+          </ul>
+
+          <h3>5. Pool report &amp; deal info</h3>
+          <ul>
+            <li>On <strong>success</strong>: a short summary of the pack rules used.</li>
+            <li>On <strong>failure</strong>: aggregated reasons (e.g. which mono-colour minimums were short, and how often). Use that to find cube makeup issues — thin mono colours, too many packs for the pool, awkward land density, and similar. Colour repair order rotates each attempt so those tallies are less biased toward one colour.</li>
+          </ul>
+
+          <h3>6. Leftover pool</h3>
+          <ul>
+            <li>Cube cards not put into any pack. Generated basics are not part of the leftover cube list.</li>
+            <li>Tap the C / U / R/M and colour tiles to filter the list (blue = included). Colour totals update from the selected rarities.</li>
+          </ul>
+
+          <h3>7. Generated packs</h3>
+          <ul>
+            <li>Cards sorted by rarity, then colour, then mana value. Common lands and basics sit at the bottom; uncommon/rare lands stay with their rarity.</li>
+            <li><strong>Copy All as Text</strong>, <strong>Download CSV</strong>, or <strong>Print</strong> (3×3 packs per page).</li>
+          </ul>
+
+          <h3>Tips</h3>
+          <ul>
+            <li>CSV colour tags can be wrong — prefer Cube Cobra import or a reliable <code>Mana Cost</code> / type column when possible.</li>
+            <li>For land detection, the list needs a type line (Cube Cobra provides this automatically).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div id="cardPreview" class="no-print" aria-hidden="true">
+      <div class="preview-status">Loading…</div>
+    </div>
+
+    <section class="no-print">
+      <h2>1. Load Cube</h2>
+      <div id="dropZone" class="cobra-import csv-import">
+        <div class="cobra-import-label"><strong>Option A — CSV</strong></div>
+        <div class="cobra-import-row">
+          <input type="file" id="csvInput" accept=".csv,text/csv" class="hidden">
+          <span id="csvFileLabel" class="csv-file-label">Drop a CSV here or choose a file</span>
+          <button type="button" id="browseCsvBtn" class="btn-primary">Browse CSV</button>
+        </div>
+      </div>
+      <div class="cobra-import no-print">
+        <div class="cobra-import-label"><strong>Option B — Cube Cobra link</strong></div>
+        <div class="cobra-import-row">
+          <input type="text" id="cubeCobraUrl" placeholder="https://cubecobra.com/cube/list/…" autocomplete="off" spellcheck="false">
+          <button type="button" id="loadCubeCobraBtn" class="btn-primary">Load from Cube Cobra</button>
+        </div>
+      </div>
+      <div class="cobra-import no-print" style="margin-top:0.75rem;">
+        <div class="cobra-import-label"><strong>Card images</strong></div>
+        <div class="cobra-import-row">
+          <button type="button" id="preloadImagesBtn" class="btn-primary">Preload card images</button>
+          <button type="button" id="clearImageCacheBtn" class="btn-sm">Clear saved card images</button>
+        </div>
+        <div id="cacheSizeStatus" class="status info" style="margin-top:0.5rem;font-size:0.8125rem;">Image cache: checking…</div>
+        <div id="preloadStatus" class="status info hidden" style="margin-top:0.35rem;font-size:0.8125rem;"></div>
+      </div>
+      <div id="uploadStatus" class="status hidden"></div>
+    </section>
+
+    <section id="qtySection" class="hidden no-print">
+      <h2>2. Cube Quantities by Rarity</h2>
+      <div class="grid-4">
+        <div>
+          <label for="qtyCommon">Commons (each)</label>
+          <input type="number" id="qtyCommon" min="0" max="20" value="3">
+        </div>
+        <div>
+          <label for="qtyUncommon">Uncommons (each)</label>
+          <input type="number" id="qtyUncommon" min="0" max="20" value="2">
+        </div>
+        <div>
+          <label for="qtyRare">Rares / Mythics (each)</label>
+          <input type="number" id="qtyRare" min="0" max="20" value="1">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="applyQtyBtn" class="btn-secondary">Apply Quantities</button>
+        <span id="qtyStatus" class="status"></span>
+      </div>
+    </section>
+
+    <div id="workspaceRow" class="workspace-row hidden no-print">
+      <div class="workspace-left">
+        <div id="poolReport" class="report-box hidden" style="margin-top:0;"></div>
+        <section id="configSection">
+          <h2 id="configHeading">2. Pack Configuration</h2>
+          <div class="grid-4">
+            <div>
+              <label for="numPacks">Number of Packs</label>
+              <input type="number" id="numPacks" min="1" max="100" value="24">
+            </div>
+            <div>
+              <label for="commonsPerPack">Commons</label>
+              <input type="number" id="commonsPerPack" min="0" max="20" value="10">
+            </div>
+            <div>
+              <label for="uncommonsPerPack">Uncommons</label>
+              <input type="number" id="uncommonsPerPack" min="0" max="20" value="3">
+            </div>
+            <div>
+              <label for="raresPerPack">Rares / Mythics</label>
+              <input type="number" id="raresPerPack" min="0" max="10" value="1">
+            </div>
+          </div>
+          <div class="seed-row">
+            <div>
+              <label for="seedInput">Seed (optional)</label>
+              <input type="text" id="seedInput" placeholder="Leave blank for random" autocomplete="off" spellcheck="false">
+            </div>
+            <button type="button" id="newSeedBtn" class="btn-sm">New random seed</button>
+          </div>
+          <div class="btn-row">
+            <button type="button" id="generateBtn" class="btn-primary">Generate Packs</button>
+            <span id="validationMsg" class="status"></span>
+          </div>
+          </section>
+        <div id="dealMeta" class="report-box hidden"></div>
+      </div>
+      <aside id="workspaceSide" class="workspace-side">
+        <div id="leftoverReport" class="report-box hidden"></div>
+        <div id="leftoverPackMount" class="hidden"></div>
+      </aside>
+    </div>
+
+    <section id="resultsSection" class="hidden" style="background:transparent;border:none;box-shadow:none;padding:0;">
+      <div class="results-header no-print">
+        <h2>Generated Packs</h2>
+        <div class="results-actions">
+          <button type="button" id="copyAllBtn" class="btn-sm">Copy All as Text</button>
+          <button type="button" id="downloadBtn" class="btn-sm">Download CSV</button>
+          <button type="button" onclick="window.print()" class="btn-sm">Print</button>
+        </div>
+      </div>
+      <div id="packsContainer" class="packs"></div>
+    </section>
+  </div>
+
+  <script>
+  (function () {
+    let cubeCards = [];
+    let pools = { Common: [], Uncommon: [], Rare: [] };
+    let generatedPacks = [];
+    let usedCsvQuantity = false;
+
+    const dropZone = document.getElementById('dropZone');
+    const csvInput = document.getElementById('csvInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+        const qtySection = document.getElementById('qtySection');
+    const configSection = document.getElementById('configSection');
+    const workspaceRow = document.getElementById('workspaceRow');
+    const configHeading = document.getElementById('configHeading');
+    const generateBtn = document.getElementById('generateBtn');
+    const applyQtyBtn = document.getElementById('applyQtyBtn');
+    const validationMsg = document.getElementById('validationMsg');
+    const qtyStatus = document.getElementById('qtyStatus');
+    const resultsSection = document.getElementById('resultsSection');
+    const packsContainer = document.getElementById('packsContainer');
+    const copyAllBtn = document.getElementById('copyAllBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const preloadImagesBtn = document.getElementById('preloadImagesBtn');
+    const clearImageCacheBtn = document.getElementById('clearImageCacheBtn');
+    const cardPreview = document.getElementById('cardPreview');
+    const preloadStatus = document.getElementById('preloadStatus');
+
+    let allowNetworkFetch = false;
+    let preloadToken = 0;
+
+    const browseCsvBtn = document.getElementById('browseCsvBtn');
+    const csvFileLabel = document.getElementById('csvFileLabel');
+    if (browseCsvBtn && csvInput) {
+      browseCsvBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        csvInput.click();
+      });
+    }
+    if (dropZone) {
+      dropZone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+      dropZone.addEventListener('dragleave', function () {
+        dropZone.classList.remove('dragover');
+      });
+      dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+      });
+    }
+    if (csvInput) {
+      csvInput.addEventListener('change', function (e) {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+      });
+    }
+
+    const loadCubeCobraBtn = document.getElementById('loadCubeCobraBtn');
+    const cubeCobraUrlInput = document.getElementById('cubeCobraUrl');
+    if (loadCubeCobraBtn) {
+      loadCubeCobraBtn.addEventListener('click', function () {
+        loadFromCubeCobra();
+      });
+    }
+    if (cubeCobraUrlInput) {
+      cubeCobraUrlInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          loadFromCubeCobra();
+        }
+      });
+    }
+
+    function handleFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+        showStatus('Please upload a .csv file.', 'err');
+        return;
+      }
+      if (csvFileLabel) csvFileLabel.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const { headers, rows } = parseCSV(reader.result);
+          parseCube(rows, headers, file.name || 'CSV');
+        } catch (err) {
+          showStatus('Failed to parse CSV: ' + err.message, 'err');
+        }
+      };
+      reader.onerror = () => showStatus('Failed to read file.', 'err');
+      reader.readAsText(file);
+    }
+
+    function extractCubeCobraId(input) {
+      const s = String(input || '').trim();
+      if (!s) return null;
+      const uuid = s.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (uuid) return uuid[0];
+      const path = s.match(/cubecobra\.com\/cube\/(?:list|overview|playtest|samplepack)\/([^/?#]+)/i);
+      if (path) return decodeURIComponent(path[1]);
+      const path2 = s.match(/cubecobra\.com\/cube\/[^/]+\/([^/?#]+)/i);
+      if (path2) return decodeURIComponent(path2[1]);
+      if (/^[a-zA-Z0-9_-]+$/.test(s)) return s;
+      return null;
+    }
+
+    /** Cube Cobra parsed_cost e.g. ["w","w","3"] → "3WW" */
+    function parsedCostToPips(pc) {
+      if (!Array.isArray(pc) || !pc.length) return null;
+      let generic = 0;
+      let xs = '';
+      const counts = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+      pc.forEach(function (token) {
+        const t = String(token).toLowerCase();
+        if (/^\d+$/.test(t)) {
+          generic += parseInt(t, 10);
+        } else if (t === 'x' || t === 'y' || t === 'z') {
+          xs += t.toUpperCase();
+        } else if (t === 'c') {
+          generic += 1;
+        } else if (counts[t.toUpperCase()] != null) {
+          counts[t.toUpperCase()]++;
+        } else {
+          const letters = t.replace(/[^wubrg]/g, '').toUpperCase();
+          for (let i = 0; i < letters.length; i++) {
+            const ch = letters[i];
+            if (counts[ch] != null) counts[ch]++;
+          }
+        }
+      });
+      let colored = '';
+      ['W', 'U', 'B', 'R', 'G'].forEach(function (L) {
+        for (let i = 0; i < counts[L]; i++) colored += L;
+      });
+      if (generic === 0 && !xs && !colored) return null;
+      return (generic > 0 ? String(generic) : '') + xs + colored;
+    }
+
+    function colorsFromCobraDetails(det) {
+      const arr = det && det.colors;
+      if (!Array.isArray(arr) || !arr.length) return '';
+      const letters = [];
+      arr.forEach(function (c) {
+        const ch = String(c).toUpperCase();
+        if ('WUBRG'.indexOf(ch) !== -1 && letters.indexOf(ch) === -1) letters.push(ch);
+      });
+      return sortWubrg(letters).join('');
+    }
+
+    function finishCubeLoad(statusMsg, statusType) {
+      const unique = cubeCards.length;
+      if (unique === 0) {
+        showStatus('No valid cards found.', 'err');
+        return;
+      }
+      if (usedCsvQuantity) {
+        rebuildPoolsFromCsv();
+        showStatus(statusMsg, statusType || 'ok');
+        qtySection.classList.add('hidden');
+        if (configHeading) configHeading.textContent = '2. Pack Configuration';
+      } else {
+        rebuildPoolsFromDefaults();
+        showStatus(statusMsg, statusType || 'ok');
+        qtySection.classList.remove('hidden');
+        if (configHeading) configHeading.textContent = '3. Pack Configuration';
+      }
+      renderSummary();
+      if (workspaceRow) workspaceRow.classList.remove('hidden');
+      if (configSection) configSection.classList.remove('hidden');
+      resultsSection.classList.add('hidden');
+      generatedPacks = [];
+      setPreloadStatus('', false);
+      clearLeftoverUi();
+    }
+
+    function loadCubeFromCobraJson(data) {
+      const boards = data && data.cards;
+      const mb = boards && boards.mainboard;
+      if (!mb || !mb.length) {
+        throw new Error('No mainboard cards in Cube Cobra response.');
+      }
+      cubeCards = [];
+      const seen = new Map();
+      usedCsvQuantity = true;
+      let cubeName = data.name || '';
+
+      mb.forEach(function (entry) {
+        const det = entry.details || {};
+        const name = (det.name || '').trim();
+        if (!name) return;
+        const rarity = normalizeRarity(det.rarity);
+        if (!rarity) return;
+        const colors = colorsFromCobraDetails(det);
+        const setCode = (det.set || '').toString().trim().toLowerCase();
+        const collectorNumber = det.collector_number != null ? String(det.collector_number).trim() : '';
+        let cmc = null;
+        if (det.cmc != null && det.cmc !== '') {
+          const n = Number(det.cmc);
+          if (!isNaN(n) && n >= 0 && n <= 99) cmc = n;
+        }
+        const manaCostPips = parsedCostToPips(det.parsed_cost);
+        const typeLine = (det.type || det.type_line || '').toString().trim();
+        const isLand = isLandType(typeLine);
+
+        const key = name.toLowerCase() + '|' + rarity;
+        if (seen.has(key)) {
+          const existing = cubeCards[seen.get(key)];
+          existing.rowCount = (existing.rowCount || 1) + 1;
+          existing.csvQty = existing.rowCount;
+          if (colors && !existing.colors) existing.colors = colors;
+          if (setCode && !existing.setCode) existing.setCode = setCode;
+          if (collectorNumber && !existing.collectorNumber) existing.collectorNumber = collectorNumber;
+          if (cmc != null && existing.cmc == null) existing.cmc = cmc;
+          if (manaCostPips && !existing.manaCostPips) existing.manaCostPips = manaCostPips;
+          if (typeLine && !existing.typeLine) existing.typeLine = typeLine;
+          if (isLand) existing.isLand = true;
+        } else {
+          seen.set(key, cubeCards.length);
+          cubeCards.push({
+            name: name,
+            rarity: rarity,
+            csvQty: 1,
+            colors: colors,
+            rowCount: 1,
+            setCode: setCode || '',
+            collectorNumber: collectorNumber || '',
+            cmc: cmc,
+            manaCostPips: manaCostPips,
+            typeLine: typeLine,
+            isLand: isLand
+          });
+        }
+      });
+
+      const label = cubeName ? ('Loaded "' + cubeName + '"') : 'Loaded cube from Cube Cobra';
+      finishCubeLoad(label, 'ok');
+    }
+
+    async function loadFromCubeCobra() {
+      const input = document.getElementById('cubeCobraUrl');
+      const btn = document.getElementById('loadCubeCobraBtn');
+      const raw = input ? input.value : '';
+      const id = extractCubeCobraId(raw);
+      if (!id) {
+        showStatus('Paste a Cube Cobra cube URL or ID (e.g. …/cube/list/your-id).', 'err');
+        return;
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Loading…';
+      }
+      showStatus('Fetching cube from Cube Cobra…', 'info');
+      try {
+        const url = 'https://cubecobra.com/cube/api/cubeJSON/' + encodeURIComponent(id);
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) {
+          throw new Error('Cube Cobra returned HTTP ' + res.status + (res.status === 404 ? ' (cube not found)' : ''));
+        }
+        const data = await res.json();
+        loadCubeFromCobraJson(data);
+      } catch (err) {
+        showStatus('Cube Cobra load failed: ' + (err && err.message ? err.message : String(err)), 'err');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Load from Cube Cobra';
+        }
+      }
+    }
+
+    function parseCSV(text) {
+      const lines = [];
+      let i = 0;
+      const len = text.length;
+      function parseLine() {
+        const fields = [];
+        let field = '';
+        let inQuotes = false;
+        while (i < len) {
+          const ch = text[i];
+          if (inQuotes) {
+            if (ch === '"') {
+              if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+              inQuotes = false; i++; continue;
+            }
+            field += ch; i++; continue;
+          }
+          if (ch === '"') { inQuotes = true; i++; continue; }
+          if (ch === ',') { fields.push(field); field = ''; i++; continue; }
+          if (ch === '\n') { i++; break; }
+          if (ch === '\r') { i++; if (text[i] === '\n') i++; break; }
+          field += ch; i++;
+        }
+        fields.push(field);
+        return fields;
+      }
+      while (i < len) {
+        if (text[i] === '\n' || text[i] === '\r') { i++; continue; }
+        lines.push(parseLine());
+      }
+      if (!lines.length) return { headers: [], rows: [] };
+      const headers = lines[0].map(h => h.trim().toLowerCase());
+      const rows = [];
+      for (let r = 1; r < lines.length; r++) {
+        const cols = lines[r];
+        if (cols.every(c => !String(c).trim())) continue;
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = cols[idx] !== undefined ? cols[idx] : ''; });
+        rows.push(obj);
+      }
+      return { headers, rows };
+    }
+
+    function findColumn(fields, candidates) {
+      for (const c of candidates) {
+        const exact = fields.find(f => f === c);
+        if (exact) return exact;
+      }
+      for (const c of candidates) {
+        const found = fields.find(f => f.includes(c));
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function normalizeRarity(raw) {
+      const r = String(raw).trim().toLowerCase();
+      if (r.startsWith('m') || r === 'mythic rare' || r === 'mythic') return 'Rare';
+      if (r.startsWith('r') || r === 'rare') return 'Rare';
+      if (r.startsWith('u') || r === 'uncommon') return 'Uncommon';
+      if (r.startsWith('c') || r === 'common') return 'Common';
+      if (r.startsWith('b') || r === 'basic' || r === 'basic land') return 'Common';
+      return null;
+    }
+
+    function sortWubrg(letters) {
+      const order = { W: 0, U: 1, B: 2, R: 3, G: 4, C: 5 };
+      return letters.slice().sort((a, b) => (order[a] ?? 9) - (order[b] ?? 9));
+    }
+
+    function normalizeColors(raw) {
+      if (raw == null || raw === '') return '';
+      const original = String(raw).trim();
+      if (!original || original.toLowerCase() === 'null' || original === '-' || original === '—') return '';
+      const lower = original.toLowerCase();
+      if (lower === 'colorless' || lower === 'c' || lower === 'artifact' || lower === 'land') return '';
+      const letters = [];
+      const map = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G', w: 'W', u: 'U', b: 'B', r: 'R', g: 'G' };
+      // Multi-letter compact like "WU" or "RG"
+      if (/^[WUBRGC]+$/i.test(original.replace(/[^A-Za-z]/g, ''))) {
+        const compact = original.replace(/[^A-Za-z]/g, '').toUpperCase();
+        for (const ch of compact) {
+          if ('WUBRG'.includes(ch) && letters.indexOf(ch) === -1) letters.push(ch);
+        }
+        return sortWubrg(letters).join('');
+      }
+      // Words or separated
+      const parts = original.split(/[\s,/;|]+/).filter(Boolean);
+      parts.forEach(p => {
+        const key = p.toLowerCase();
+        if (map[key] && letters.indexOf(map[key]) === -1) letters.push(map[key]);
+        else if (/^[WUBRG]$/i.test(p) && letters.indexOf(p.toUpperCase()) === -1) letters.push(p.toUpperCase());
+      });
+      // Also scan individual letters in string
+      if (!letters.length) {
+        for (const ch of original.toUpperCase()) {
+          if ('WUBRG'.includes(ch) && letters.indexOf(ch) === -1) letters.push(ch);
+        }
+      }
+      return sortWubrg(letters).join('');
+    }
+
+    function colorIdLabel(colors) {
+      if (!colors) return 'C';
+      return colors;
+    }
+
+    function colorSortKey(colors) {
+      if (!colors || colors.length === 0) return 6;
+      if (colors.length > 1) return 5;
+      const map = { W: 0, U: 1, B: 2, R: 3, G: 4 };
+      return map[colors] != null ? map[colors] : 6;
+    }
+
+    function cmcValue(card) {
+      const n = Number(card && card.cmc);
+      return isNaN(n) ? 99 : n;
+    }
+
+    /**
+     * Parse a mana cost string into pip notation: generic first, then WUBRG.
+     * Preserves multiple pips of the same colour (BB, WW, RRR, etc.).
+     * Accepts "{2}{W}{U}", "{B}{B}", "2WU", "XRR", "BB", etc.
+     */
+    function parseManaCostToPips(raw) {
+      if (raw == null || raw === '') return null;
+      const s = String(raw).trim();
+      if (!s) return null;
+      let generic = 0;
+      let xs = '';
+      const counts = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+
+      function addColorLetters(str) {
+        for (let i = 0; i < str.length; i++) {
+          const ch = str[i];
+          if (counts[ch] != null) counts[ch]++;
+        }
+      }
+
+      if (s.indexOf('{') !== -1) {
+        const re = /\{([^}]+)\}/g;
+        let m;
+        while ((m = re.exec(s)) !== null) {
+          const inner = m[1].toUpperCase();
+          if (/^\d+$/.test(inner)) {
+            generic += parseInt(inner, 10);
+          } else if (inner === 'X' || inner === 'Y' || inner === 'Z') {
+            xs += inner;
+          } else if (inner === 'C') {
+            generic += 1;
+          } else if (inner.indexOf('/') !== -1) {
+            // Hybrid / phyrexian: use coloured letters only (W/U → WU as two pips for display)
+            const letters = inner.replace(/[^WUBRG]/g, '');
+            if (letters.length >= 2 && inner.indexOf('P') === -1) {
+              // hybrid — show both colours once each (standard rough display)
+              addColorLetters(letters.charAt(0) + letters.charAt(1));
+            } else {
+              addColorLetters(letters);
+            }
+          } else {
+            // Mono / repeated in one brace e.g. {B} or rare {BB}
+            addColorLetters(inner.replace(/[^WUBRG]/g, ''));
+          }
+        }
+      } else {
+        const upper = s.toUpperCase().replace(/[^0-9XWUBRGC]/g, '');
+        const numMatch = upper.match(/^(\d+)/);
+        if (numMatch) generic = parseInt(numMatch[1], 10);
+        const rest = upper.replace(/^\d+/, '');
+        for (let i = 0; i < rest.length; i++) {
+          const ch = rest[i];
+          if (ch === 'X' || ch === 'Y' || ch === 'Z') xs += ch;
+          else if (counts[ch] != null) counts[ch]++;
+          else if (ch === 'C') generic += 1;
+        }
+      }
+
+      let colored = '';
+      ['W', 'U', 'B', 'R', 'G'].forEach(function (L) {
+        for (let i = 0; i < counts[L]; i++) colored += L;
+      });
+      if (generic === 0 && !xs && !colored) return null;
+      return (generic > 0 ? String(generic) : '') + xs + colored;
+    }
+
+    /**
+     * Display cost: prefer real mana cost pips (2W, BB), else derive from CMC + colour letters.
+     */
+    function manaDisplay(card) {
+      if (card && card.manaCostPips) return card.manaCostPips;
+      const colors = (card && card.colors) || '';
+      const cmc = Number(card && card.cmc);
+      if (!isNaN(cmc)) {
+        const pipCount = colors.length;
+        const generic = Math.max(0, Math.round(cmc) - pipCount);
+        if (!colors) return String(Math.round(cmc));
+        return (generic > 0 ? String(generic) : '') + colors;
+      }
+      if (colors) return colors;
+      return '—';
+    }
+
+    function compareCardsForDisplay(a, b) {
+      const ca = colorSortKey(a.colors);
+      const cb = colorSortKey(b.colors);
+      if (ca !== cb) return ca - cb;
+      const ma = cmcValue(a);
+      const mb = cmcValue(b);
+      if (ma !== mb) return ma - mb;
+      return (a.name || '').localeCompare(b.name || '');
+    }
+
+    /**
+     * Sort pack lines: rarity → colour → CMC → name.
+     * Only common lands (including basics) sink to the bottom; uncommon/rare lands stay with their rarity.
+     */
+    function sortCardsForPack(list) {
+      const rarityOrder = { Rare: 0, Uncommon: 1, Common: 2 };
+      function isCommonLandSlot(c) {
+        if (!c) return false;
+        if (c.isBasicLand) return true;
+        return !!(c.isLand && c.rarity === 'Common');
+      }
+      return list.slice().sort(function (a, b) {
+        const aBottom = isCommonLandSlot(a);
+        const bBottom = isCommonLandSlot(b);
+        if (aBottom !== bBottom) return aBottom ? 1 : -1;
+        if (aBottom && bBottom) {
+          const aBasic = !!a.isBasicLand;
+          const bBasic = !!b.isBasicLand;
+          if (aBasic !== bBasic) return aBasic ? 1 : -1;
+          return (a.name || '').localeCompare(b.name || '');
+        }
+        const ra = rarityOrder[a.rarity] != null ? rarityOrder[a.rarity] : 3;
+        const rb = rarityOrder[b.rarity] != null ? rarityOrder[b.rarity] : 3;
+        if (ra !== rb) return ra - rb;
+        return compareCardsForDisplay(a, b);
+      });
+    }
+
+    function colorStyle(colors) {
+      if (!colors || colors.length === 0) {
+        return 'background:rgba(148,163,184,0.18);';
+      }
+      if (colors.length > 1) {
+        return 'background:rgba(234,179,8,0.28);';
+      }
+      const map = {
+        W: 'background:rgba(255,255,255,0.95);',
+        U: 'background:rgba(59,130,246,0.28);',
+        B: 'background:rgba(30,30,30,0.22);',
+        R: 'background:rgba(239,68,68,0.28);',
+        G: 'background:rgba(34,197,94,0.28);'
+      };
+      return map[colors] || 'background:rgba(148,163,184,0.18);';
+    }
+
+    function parseCube(rows, fields, sourceLabel) {
+      const nameCol = findColumn(fields, ['name', 'card name', 'card_name', 'cardname', 'card']);
+      const rarityCol = findColumn(fields, ['rarity', 'rar']);
+      const qtyCol = findColumn(fields, [
+        'quantity', 'qty', 'count', 'desired_qty', 'qty_owned', 'copies', 'owned quantity', 'num owned'
+      ]);
+      const badQty = qtyCol && /collector|set|edition|number|id|cmc|mana|price|cost/i.test(qtyCol);
+      const safeQtyCol = badQty ? null : qtyCol;
+      const colorCol = (() => {
+        const prefer = ['colors', 'color', 'colour', 'mana colors', 'mana colour', 'casting colors', 'card colors'];
+        for (const c of prefer) {
+          const exact = fields.find(f => f === c);
+          if (exact && !/identity/i.test(exact)) return exact;
+        }
+        for (const c of prefer) {
+          const found = fields.find(f => f.includes(c) && !/identity/i.test(f));
+          if (found) return found;
+        }
+        return null;
+      })();
+      const setCol = findColumn(fields, ['set', 'set code', 'set_code', 'edition', 'setcode', 'expansion']);
+      const collectorCol = findColumn(fields, [
+        'collector number', 'collector_number', 'collector#', 'collector no', 'collector_no', 'cn', 'card number', 'card_number'
+      ]);
+      const safeCollectorCol = collectorCol && !/mtgo|id|price|cmc/i.test(collectorCol) ? collectorCol : null;
+      const cmcCol = findColumn(fields, ['cmc', 'mana value', 'manavalue', 'mana_value', 'mv', 'converted mana cost']);
+      const manaCostCol = (() => {
+        const prefer = ['mana cost', 'manacost', 'mana_cost', 'casting cost', 'casting_cost'];
+        for (let i = 0; i < prefer.length; i++) {
+          const exact = fields.find(function (f) { return f === prefer[i]; });
+          if (exact && !/identity|color|colour|value|price|cmc/i.test(exact)) return exact;
+        }
+        for (let i = 0; i < prefer.length; i++) {
+          const found = fields.find(function (f) {
+            return f.indexOf(prefer[i]) !== -1 && !/identity|color|colour|value|price|cmc/i.test(f);
+          });
+          if (found) return found;
+        }
+        return null;
+      })();
+      const typeCol = findColumn(fields, [
+        'type', 'type line', 'type_line', 'types', 'card type', 'card_type', 'typeline'
+      ]);
+
+      if (!nameCol) {
+        showStatus('Could not find a Name column. Expected header like "Name" or "Card Name".', 'err');
+        return;
+      }
+      if (!rarityCol) {
+        showStatus('Could not find a Rarity column. Expected header like "Rarity".', 'err');
+        return;
+      }
+
+      cubeCards = [];
+      const seen = new Map();
+      usedCsvQuantity = false;
+      let usedRowCounts = false;
+
+      rows.forEach((row) => {
+        const name = (row[nameCol] || '').trim();
+        if (!name) return;
+        const rarity = normalizeRarity(row[rarityCol]);
+        if (!rarity) return;
+
+        let qty = null;
+        if (safeQtyCol && row[safeQtyCol] !== undefined && row[safeQtyCol] !== '') {
+          const parsed = parseInt(row[safeQtyCol], 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+            qty = parsed;
+            usedCsvQuantity = true;
+          }
+        }
+        let colors = null;
+        if (colorCol && row[colorCol] !== undefined && row[colorCol] !== '') {
+          colors = normalizeColors(row[colorCol]);
+        }
+        let setCode = '';
+        if (setCol && row[setCol] !== undefined && row[setCol] !== '') {
+          setCode = String(row[setCol]).trim().toLowerCase();
+        }
+        let collectorNumber = '';
+        if (safeCollectorCol && row[safeCollectorCol] !== undefined && row[safeCollectorCol] !== '') {
+          collectorNumber = String(row[safeCollectorCol]).trim();
+        }
+        let cmc = null;
+        if (cmcCol && row[cmcCol] !== undefined && row[cmcCol] !== '') {
+          const parsedCmc = parseFloat(String(row[cmcCol]).trim());
+          if (!isNaN(parsedCmc) && parsedCmc >= 0 && parsedCmc <= 99) {
+            cmc = parsedCmc;
+          }
+        }
+        let manaCostPips = null;
+        if (manaCostCol && row[manaCostCol] !== undefined && row[manaCostCol] !== '') {
+          manaCostPips = parseManaCostToPips(row[manaCostCol]);
+        }
+        // Colour column sometimes carries pip strings like "BB" / "WW" — preserve multiples for display
+        if (!manaCostPips && colorCol && row[colorCol] !== undefined && row[colorCol] !== '') {
+          const colorRaw = String(row[colorCol]).trim();
+          const compact = colorRaw.replace(/[^WUBRGwubrg0-9{}]/g, '').toUpperCase();
+          if (compact && (/\{[WUBRG]\}/.test(compact) || (/^[WUBRG0-9]+$/.test(compact) && compact.length > 1))) {
+            const fromColor = parseManaCostToPips(compact.indexOf('{') !== -1 ? colorRaw : compact);
+            // Only use when it encodes more than unique colour identity (e.g. BB, not just B or WU)
+            if (fromColor && fromColor.replace(/[0-9X]/g, '').length > (colors ? colors.length : 0)) {
+              manaCostPips = fromColor;
+            } else if (fromColor && /^[WUBRG]+$/.test(fromColor) && fromColor.length >= 2) {
+              // e.g. BB, WW, RRR even when identity length is 1
+              const uniq = fromColor.split('').filter(function (ch, i, arr) { return arr.indexOf(ch) === i; });
+              if (fromColor.length > uniq.length) manaCostPips = fromColor;
+            }
+          }
+        }
+        let typeLine = '';
+        if (typeCol && row[typeCol] !== undefined && row[typeCol] !== '') {
+          typeLine = String(row[typeCol]).trim();
+        }
+        const isLand = isLandType(typeLine);
+
+        const key = name.toLowerCase() + '|' + rarity;
+        if (seen.has(key)) {
+          const existing = cubeCards[seen.get(key)];
+          existing.rowCount = (existing.rowCount || 1) + 1;
+          if (qty !== null) existing.csvQty = (existing.csvQty || 0) + qty;
+          if (colors && !existing.colors) existing.colors = colors;
+          if (setCode && !existing.setCode) existing.setCode = setCode;
+          if (collectorNumber && !existing.collectorNumber) existing.collectorNumber = collectorNumber;
+          if (cmc != null && existing.cmc == null) existing.cmc = cmc;
+          if (manaCostPips && !existing.manaCostPips) existing.manaCostPips = manaCostPips;
+          if (typeLine && !existing.typeLine) existing.typeLine = typeLine;
+          if (isLand) existing.isLand = true;
+        } else {
+          seen.set(key, cubeCards.length);
+          cubeCards.push({
+            name: name,
+            rarity: rarity,
+            csvQty: qty,
+            colors: colors,
+            rowCount: 1,
+            setCode: setCode || '',
+            collectorNumber: collectorNumber || '',
+            cmc: cmc,
+            manaCostPips: manaCostPips,
+            typeLine: typeLine,
+            isLand: isLand
+          });
+        }
+      });
+
+      if (cubeCards.length === 0) {
+        showStatus('No valid cards found in CSV.', 'err');
+        return;
+      }
+
+      if (!usedCsvQuantity) {
+        const maxRows = Math.max.apply(null, cubeCards.map(c => c.rowCount || 1));
+        if (maxRows > 1) {
+          cubeCards.forEach(c => { c.csvQty = c.rowCount || 1; });
+          usedCsvQuantity = true;
+          usedRowCounts = true;
+        }
+      }
+
+      const label = sourceLabel ? String(sourceLabel).replace(/\.csv$/i, '') : 'CSV';
+      if (usedCsvQuantity) {
+        rebuildPoolsFromCsv();
+        showStatus('Loaded "' + label + '"', 'ok');
+        qtySection.classList.add('hidden');
+        configHeading.textContent = '2. Pack Configuration';
+      } else {
+        rebuildPoolsFromDefaults();
+        showStatus('Loaded "' + label + '" — set quantities by rarity below.', 'ok');
+        qtySection.classList.remove('hidden');
+        configHeading.textContent = '3. Pack Configuration';
+      }
+
+      renderSummary();
+      if (workspaceRow) workspaceRow.classList.remove('hidden');
+      if (configSection) configSection.classList.remove('hidden');
+      resultsSection.classList.add('hidden');
+      generatedPacks = [];
+      setPreloadStatus('', false);
+      clearLeftoverUi();
+    }
+
+    function showStatus(msg, type) {
+      uploadStatus.classList.remove('hidden', 'ok', 'err', 'warn', 'info');
+      uploadStatus.textContent = msg;
+      uploadStatus.classList.add(type || 'info');
+    }
+
+    function getDefaultQty(card) {
+      if (card.rarity === 'Common') return parseInt(document.getElementById('qtyCommon').value, 10) || 0;
+      if (card.rarity === 'Uncommon') return parseInt(document.getElementById('qtyUncommon').value, 10) || 0;
+      if (card.rarity === 'Rare') return parseInt(document.getElementById('qtyRare').value, 10) || 0;
+      return 1;
+    }
+
+    function isLandType(typeLine) {
+      if (typeLine == null || typeLine === '') return false;
+      return /\bland\b/i.test(String(typeLine));
+    }
+
+    /** Cube common land (not a generated basic). */
+    function isCommonLand(card) {
+      return !!(card && card.isLand && card.rarity === 'Common' && !card.isBasicLand);
+    }
+
+    function countCommonLands(cards) {
+      let n = 0;
+      for (let i = 0; i < cards.length; i++) {
+        if (isCommonLand(cards[i])) n++;
+      }
+      return n;
+    }
+
+    var BASIC_LAND_DEFS = [
+      { name: 'Plains', colors: 'W', typeLine: 'Basic Land — Plains' },
+      { name: 'Island', colors: 'U', typeLine: 'Basic Land — Island' },
+      { name: 'Swamp', colors: 'B', typeLine: 'Basic Land — Swamp' },
+      { name: 'Mountain', colors: 'R', typeLine: 'Basic Land — Mountain' },
+      { name: 'Forest', colors: 'G', typeLine: 'Basic Land — Forest' }
+    ];
+    var CUBE_LAND_CHANCE = 0.33;
+
+    function dominantCubeSetCode() {
+      const counts = Object.create(null);
+      (cubeCards || []).forEach(function (c) {
+        const s = (c.setCode || '').toString().trim().toLowerCase();
+        if (!s) return;
+        counts[s] = (counts[s] || 0) + 1;
+      });
+      let best = '';
+      let n = 0;
+      Object.keys(counts).forEach(function (s) {
+        if (counts[s] > n) {
+          n = counts[s];
+          best = s;
+        }
+      });
+      return best;
+    }
+
+    function makeBasicLand(rng) {
+      const def = BASIC_LAND_DEFS[Math.floor((rng || Math.random)() * BASIC_LAND_DEFS.length)];
+      return {
+        name: def.name,
+        rarity: 'Common',
+        // Basics have no casting-cost colours — treat as colourless for tints / mono rules
+        colors: '',
+        setCode: dominantCubeSetCode() || '',
+        collectorNumber: '',
+        cmc: 0,
+        manaCostPips: null,
+        typeLine: def.typeLine,
+        isLand: true,
+        isBasicLand: true
+      };
+    }
+
+    /** Five basics for the cube's primary set — included in image preload. */
+    function basicLandPreloadEntries() {
+      const setCode = dominantCubeSetCode() || '';
+      return BASIC_LAND_DEFS.map(function (def) {
+        return {
+          name: def.name,
+          setCode: setCode,
+          collectorNumber: '',
+          key: cardImageKey(def.name, setCode, '')
+        };
+      });
+    }
+
+    function poolCard(c) {
+      return {
+        name: c.name,
+        rarity: c.rarity,
+        colors: c.colors || '',
+        setCode: c.setCode || '',
+        collectorNumber: c.collectorNumber || '',
+        cmc: c.cmc != null ? c.cmc : null,
+        manaCostPips: c.manaCostPips || null,
+        typeLine: c.typeLine || '',
+        isLand: !!c.isLand,
+        isBasicLand: !!c.isBasicLand
+      };
+    }
+
+    function rebuildPoolsFromDefaults() {
+      pools = { Common: [], Uncommon: [], Rare: [] };
+      cubeCards.forEach(c => {
+        const qty = getDefaultQty(c);
+        for (let i = 0; i < qty; i++) pools[c.rarity].push(poolCard(c));
+      });
+    }
+
+    function rebuildPoolsFromCsv() {
+      pools = { Common: [], Uncommon: [], Rare: [] };
+      cubeCards.forEach(c => {
+        const qty = c.csvQty != null ? c.csvQty : 1;
+        for (let i = 0; i < qty; i++) pools[c.rarity].push(poolCard(c));
+      });
+    }
+
+    function countMonoInPools() {
+      const mono = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+      let multi = 0;
+      let colorless = 0;
+      [pools.Common, pools.Uncommon, pools.Rare].forEach(function (pool) {
+        pool.forEach(function (card) {
+          if (card.colors && card.colors.length === 1 && mono[card.colors] != null) {
+            mono[card.colors]++;
+          } else if (card.colors && card.colors.length > 1) {
+            multi++;
+          } else {
+            colorless++;
+          }
+        });
+      });
+      return { mono: mono, multi: multi, colorless: colorless };
+    }
+
+    function renderSummary() {
+      renderPoolReport();
+    }
+
+    function renderPoolReport() {
+      const el = document.getElementById('poolReport');
+      if (!el) return;
+      const c = pools.Common.length;
+      const u = pools.Uncommon.length;
+      const r = pools.Rare.length;
+      const total = c + u + r;
+      const unique = cubeCards.length;
+      const colorInfo = countMonoInPools();
+      const m = colorInfo.mono;
+      el.classList.remove('hidden');
+      el.innerHTML =
+        '<div class="panel-title">Pool report</div>' +
+        '<div class="stat-grid cols-4">' +
+          '<div class="stat mono-stat"><span class="stat-label">Unique</span><span class="stat-value">' + unique + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">Copies</span><span class="stat-value">' + total + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">Common</span><span class="stat-value">' + c + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">Uncommon</span><span class="stat-value">' + u + '</span></div>' +
+        '</div>' +
+        '<div class="stat-grid cols-4" style="margin-top:0.5rem;">' +
+          '<div class="stat mono-stat"><span class="stat-label">Rare / Mythic</span><span class="stat-value">' + r + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">Multicolor</span><span class="stat-value">' + colorInfo.multi + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">Colourless</span><span class="stat-value">' + colorInfo.colorless + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">Mono total</span><span class="stat-value">' +
+            (m.W + m.U + m.B + m.R + m.G) + '</span></div>' +
+        '</div>' +
+        '<hr class="panel-divider">' +
+        '<div class="stat-grid cols-5">' +
+          '<div class="stat mono-stat"><span class="stat-label">W</span><span class="stat-value">' + m.W + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">U</span><span class="stat-value">' + m.U + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">B</span><span class="stat-value">' + m.B + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">R</span><span class="stat-value">' + m.R + '</span></div>' +
+          '<div class="stat mono-stat"><span class="stat-label">G</span><span class="stat-value">' + m.G + '</span></div>' +
+        '</div>';
+    }
+
+    function hashSeedString(str) {
+      let h = 2166136261 >>> 0;
+      const s = String(str);
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a = (a + 0x6D2B79F5) >>> 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function makeRng(seedStr, attempt) {
+      return mulberry32(hashSeedString(String(seedStr) + ':' + String(attempt)));
+    }
+
+    function shuffle(array, rng) {
+      const a = array.slice();
+      const rand = rng || Math.random;
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        const t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    function randomSeedString() {
+      const a = new Uint32Array(2);
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        crypto.getRandomValues(a);
+        return (a[0].toString(16) + a[1].toString(16)).slice(0, 12);
+      }
+      return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+    }
+
+    function cardMultisetKey(card) {
+      return (card.name || '') + '\t' + (card.rarity || '');
+    }
+
+    function buildMultiset(cards) {
+      const m = Object.create(null);
+      cards.forEach(function (c) {
+        const k = cardMultisetKey(c);
+        m[k] = (m[k] || 0) + 1;
+      });
+      return m;
+    }
+
+    function emptyColorBreakdown() {
+      return { W: 0, U: 0, B: 0, R: 0, G: 0, multi: 0, colorless: 0, total: 0 };
+    }
+
+    function addToColorBreakdown(bucket, colors, qty) {
+      bucket.total += qty;
+      if (colors && colors.length === 1 && bucket[colors] != null) {
+        bucket[colors] += qty;
+      } else if (colors && colors.length > 1) {
+        bucket.multi += qty;
+      } else {
+        bucket.colorless += qty;
+      }
+    }
+
+    function formatColorBreakdown(b) {
+      return (
+        'W ' + b.W + ' · U ' + b.U + ' · B ' + b.B + ' · R ' + b.R + ' · G ' + b.G +
+        ' · Multi ' + b.multi + ' · C/other ' + b.colorless
+      );
+    }
+
+    function colorFilterGroup(colors) {
+      if (!colors || colors.length === 0) return 'C';
+      if (colors.length > 1) return 'M';
+      return colors; // W U B R G
+    }
+
+    function applyLeftoverFilters() {
+      const filterRoot = document.getElementById('leftoverReport');
+      const packRoot = document.getElementById('leftoverPackMount') || filterRoot;
+      if (!filterRoot || !packRoot) return;
+
+      const rarityOn = {};
+      ['Common', 'Uncommon', 'Rare'].forEach(function (r) {
+        const btn = filterRoot.querySelector('.stat-toggle[data-filter-rarity="' + r + '"]');
+        rarityOn[r] = btn ? btn.classList.contains('accent') : true;
+      });
+      const colorKeys = ['W', 'U', 'B', 'R', 'G', 'M', 'C'];
+      const colorOn = {};
+      colorKeys.forEach(function (k) {
+        const btn = filterRoot.querySelector('.stat-toggle[data-filter-color="' + k + '"]');
+        colorOn[k] = btn ? btn.classList.contains('accent') : true;
+      });
+
+      // Colour totals reflect only selected rarities (C / U / R/M)
+      const colorCounts = { W: 0, U: 0, B: 0, R: 0, G: 0, M: 0, C: 0 };
+      let visible = 0;
+      const items = packRoot.querySelectorAll('.leftover-pack .pack-body li[data-rarity]');
+      const total = packRoot.querySelectorAll('.leftover-pack .pack-body li').length;
+      items.forEach(function (li) {
+        const rar = li.getAttribute('data-rarity') || 'Common';
+        const col = li.getAttribute('data-color-group') || 'C';
+        if (rarityOn[rar]) {
+          if (colorCounts[col] != null) colorCounts[col]++;
+        }
+        const show = rarityOn[rar] !== false && colorOn[col] !== false;
+        if (show) {
+          li.removeAttribute('hidden');
+          visible++;
+        } else {
+          li.setAttribute('hidden', '');
+        }
+      });
+
+      colorKeys.forEach(function (k) {
+        const btn = filterRoot.querySelector('.stat-toggle[data-filter-color="' + k + '"]');
+        if (!btn) return;
+        const val = btn.querySelector('.stat-value');
+        if (val) val.textContent = String(colorCounts[k] || 0);
+      });
+
+      filterRoot.querySelectorAll('.leftover-visible-count').forEach(function (countEl) {
+        countEl.textContent = visible + ' shown · ' + total + ' total';
+      });
+      const headerCount = packRoot.querySelector('.leftover-pack .leftover-visible-count');
+      if (headerCount) headerCount.textContent = visible + ' cards';
+    }
+
+    function renderLeftoverReport(packs) {
+      const el = document.getElementById('leftoverReport');
+      if (!el) return;
+
+      const used = [];
+      packs.forEach(function (p) {
+        packCards(p).forEach(function (c) {
+          // Generated basics are not from the cube pool
+          if (c && c.isBasicLand) return;
+          used.push(c);
+        });
+      });
+      const usedSet = buildMultiset(used);
+      const poolAll = pools.Common.concat(pools.Uncommon, pools.Rare);
+      const poolSet = buildMultiset(poolAll);
+
+      const metaByKey = Object.create(null);
+      poolAll.forEach(function (c) {
+        const k = cardMultisetKey(c);
+        if (!metaByKey[k]) {
+          metaByKey[k] = {
+            name: c.name,
+            rarity: c.rarity,
+            colors: c.colors || '',
+            setCode: c.setCode || '',
+            collectorNumber: c.collectorNumber || '',
+            cmc: c.cmc != null ? c.cmc : null,
+            manaCostPips: c.manaCostPips || null
+          };
+        }
+      });
+
+      const overall = emptyColorBreakdown();
+      const byRarity = { Common: 0, Uncommon: 0, Rare: 0 };
+      const flat = [];
+
+      Object.keys(poolSet).forEach(function (k) {
+        const left = poolSet[k] - (usedSet[k] || 0);
+        if (left <= 0) return;
+        const parts = k.split('\t');
+        const rarity = parts[1] || 'Common';
+        const meta = metaByKey[k] || {
+          name: parts[0],
+          rarity: rarity,
+          colors: '',
+          setCode: '',
+          collectorNumber: '',
+          cmc: null,
+          manaCostPips: null
+        };
+        for (let i = 0; i < left; i++) {
+          flat.push({
+            name: meta.name || parts[0],
+            rarity: rarity,
+            colors: meta.colors || '',
+            setCode: meta.setCode || '',
+            collectorNumber: meta.collectorNumber || '',
+            cmc: meta.cmc,
+            manaCostPips: meta.manaCostPips
+          });
+        }
+        if (byRarity[rarity] != null) byRarity[rarity] += left;
+        addToColorBreakdown(overall, meta.colors || '', left);
+      });
+
+      const flatSorted = sortCardsForPack(flat);
+
+      let listHtml = '';
+      flatSorted.forEach(function (c) {
+        const cg = colorFilterGroup(c.colors);
+        listHtml +=
+          '<li style="' + colorStyle(c.colors) + '" data-rarity="' + escapeHtml(c.rarity) +
+            '" data-color-group="' + escapeHtml(cg) + '">' +
+            '<span class="rarity-tag ' + rarityClass(c.rarity) + '">' + rarityLabel(c.rarity) + '</span>' +
+            '<span class="card-name" data-card-name="' + escapeHtml(c.name) + '"' +
+              (c.setCode ? ' data-card-set="' + escapeHtml(c.setCode) + '"' : '') +
+              (c.collectorNumber ? ' data-card-cn="' + escapeHtml(c.collectorNumber) + '"' : '') +
+            '>' + escapeHtml(c.name) + '</span>' +
+            '<span class="color-id">' + escapeHtml(manaDisplay(c)) + '</span>' +
+          '</li>';
+      });
+
+      if (!flatSorted.length) {
+        listHtml = '<li class="muted" style="background:transparent;">No leftover cards — entire pool was used.</li>';
+      }
+
+      const packMount = document.getElementById('leftoverPackMount');
+
+      const row = document.getElementById('workspaceRow');
+      if (row) row.classList.add('has-side');
+
+      el.classList.remove('hidden');
+      el.innerHTML =
+        '<div class="panel-title">Leftover pool</div>' +
+        '<div class="stat-grid cols-4">' +
+          '<div class="stat accent mono-stat"><span class="stat-label">Left</span><span class="stat-value">' + overall.total + '</span></div>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-rarity="Common" aria-pressed="true">' +
+            '<span class="stat-label">C</span><span class="stat-value">' + byRarity.Common + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-rarity="Uncommon" aria-pressed="true">' +
+            '<span class="stat-label">U</span><span class="stat-value">' + byRarity.Uncommon + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-rarity="Rare" aria-pressed="true">' +
+            '<span class="stat-label">R/M</span><span class="stat-value">' + byRarity.Rare + '</span></button>' +
+        '</div>' +
+        '<div class="stat-grid cols-5" style="margin-top:0.5rem;">' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="W" aria-pressed="true">' +
+            '<span class="stat-label">W</span><span class="stat-value">' + overall.W + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="U" aria-pressed="true">' +
+            '<span class="stat-label">U</span><span class="stat-value">' + overall.U + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="B" aria-pressed="true">' +
+            '<span class="stat-label">B</span><span class="stat-value">' + overall.B + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="R" aria-pressed="true">' +
+            '<span class="stat-label">R</span><span class="stat-value">' + overall.R + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="G" aria-pressed="true">' +
+            '<span class="stat-label">G</span><span class="stat-value">' + overall.G + '</span></button>' +
+        '</div>' +
+        '<div class="stat-grid cols-2" style="margin-top:0.5rem;">' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="M" aria-pressed="true">' +
+            '<span class="stat-label">Multi</span><span class="stat-value">' + overall.multi + '</span></button>' +
+          '<button type="button" class="stat mono-stat stat-toggle accent" data-filter-color="C" aria-pressed="true">' +
+            '<span class="stat-label">Colourless</span><span class="stat-value">' + overall.colorless + '</span></button>' +
+        '</div>' +
+        '<p class="status info leftover-visible-count" style="margin:0.65rem 0 0;">' + overall.total + ' shown · ' + overall.total + ' total</p>';
+
+      if (packMount) {
+        packMount.classList.remove('hidden');
+        packMount.innerHTML =
+          '<div class="pack-card leftover-pack">' +
+            '<div class="pack-header">' +
+              '<strong>Leftovers</strong>' +
+              '<span class="count leftover-visible-count">' + overall.total + ' cards</span>' +
+            '</div>' +
+            '<div class="pack-body"><ul>' + listHtml + '</ul></div>' +
+          '</div>';
+      }
+
+      el.querySelectorAll('.stat-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const on = !btn.classList.contains('accent');
+          btn.classList.toggle('accent', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+          applyLeftoverFilters();
+        });
+      });
+      requestAnimationFrame(function () { syncLeftoverLayout(); });
+    }
+
+    /**
+     * @param {object} opts
+     * @param {string} opts.seedUsed
+     * @param {number} opts.attempts
+     * @param {number} opts.numPacks
+     * @param {number} [opts.commonsN]
+     * @param {number} [opts.uncommonsN]
+     * @param {number} [opts.raresN]
+     * @param {boolean} opts.ok
+     * @param {string[]} [opts.failureReasons] human-readable reasons when ok is false
+     */
+    function renderDealMeta(opts) {
+      const meta = document.getElementById('dealMeta');
+      if (!meta) return;
+      opts = opts || {};
+      const seedUsed = opts.seedUsed || '';
+      const attempts = opts.attempts != null ? opts.attempts : 0;
+      const numPacks = opts.numPacks != null ? opts.numPacks : 0;
+      const c = opts.commonsN != null ? opts.commonsN : (parseInt(document.getElementById('commonsPerPack').value, 10) || 0);
+      const u = opts.uncommonsN != null ? opts.uncommonsN : (parseInt(document.getElementById('uncommonsPerPack').value, 10) || 0);
+      const r = opts.raresN != null ? opts.raresN : (parseInt(document.getElementById('raresPerPack').value, 10) || 0);
+      const perPack = c + u + r;
+      const ok = opts.ok !== false;
+      const failureReasons = Array.isArray(opts.failureReasons) ? opts.failureReasons.filter(Boolean) : [];
+
+      let bodyHtml;
+      if (ok) {
+        bodyHtml =
+          '<div class="stat-label" style="margin-bottom:0.35rem;">Each pack</div>' +
+          '<ul class="deal-rules">' +
+            '<li><strong>' + c + '</strong> non-land common' + (c === 1 ? '' : 's') +
+              ', <strong>' + u + '</strong> uncommon' + (u === 1 ? '' : 's') +
+              ', <strong>' + r + '</strong> rare/mythic' + (r === 1 ? '' : 's') +
+              ', and <strong>1</strong> land' +
+              ' <span class="status info" style="margin:0;">(' + (perPack + 1) + ' cards)</span></li>' +
+            '<li>Land slot: <strong>33%</strong> chance of a cube common land (if any remain), otherwise a random basic (Plains, Island, Swamp, Mountain, or Forest)</li>' +
+            '<li>Cube common lands are not regular commons — they only fill the land slot</li>' +
+            '<li>At least <strong>2</strong> mono-colour cards of each colour (W, U, B, R, G)</li>' +
+            '<li>Multicolour and colourless do not count toward those colour minimums</li>' +
+            '<li>No duplicate card names in a pack (basics may repeat across packs)</li>' +
+            '<li>Cube card quantities are never exceeded</li>' +
+          '</ul>';
+      } else {
+        const items = failureReasons.length
+          ? failureReasons.map(function (line) {
+              return '<li>' + escapeHtml(line) + '</li>';
+            }).join('')
+          : '<li>Generation failed for an unknown reason.</li>';
+        bodyHtml =
+          '<div class="stat-label" style="margin-bottom:0.35rem;">Why generation failed</div>' +
+          '<ul class="deal-rules deal-fail-reasons">' + items + '</ul>';
+      }
+
+      meta.classList.remove('hidden');
+      meta.innerHTML =
+        '<div class="panel-title">Deal info</div>' +
+        '<div class="stat-grid cols-3">' +
+          '<div class="stat"><span class="stat-label">Packs</span><span class="stat-value">' + numPacks + '</span></div>' +
+          '<div class="stat"><span class="stat-label">Attempts</span><span class="stat-value">' + attempts + '</span></div>' +
+          '<div class="stat"><span class="stat-label">Status</span><span class="stat-value" style="font-size:0.95rem;' +
+            (ok ? '' : 'color:#dc2626;') + '">' + (ok ? 'Legal' : 'Failed') + '</span></div>' +
+        '</div>' +
+        '<hr class="panel-divider">' +
+        bodyHtml +
+        '<hr class="panel-divider">' +
+        '<div class="stat-label" style="margin-bottom:0.35rem;">Seed</div>' +
+        '<div class="deal-seed">' + escapeHtml(seedUsed || '—') + '</div>';
+    }
+
+    function syncLeftoverLayout() {
+      const left = document.querySelector('.workspace-left');
+      const side = document.getElementById('workspaceSide');
+      const leftover = document.getElementById('leftoverReport');
+      const packMount = document.getElementById('leftoverPackMount');
+      if (!side) return;
+
+      const row = document.getElementById('workspaceRow');
+      const hasSide = row && row.classList.contains('has-side');
+      const sideBySide = hasSide && window.matchMedia('(min-width: 960px)').matches;
+      const samplePack = document.querySelector('#packsContainer .pack-card');
+      let targetW = 0;
+      if (samplePack) {
+        targetW = Math.round(samplePack.getBoundingClientRect().width);
+      }
+
+      side.style.height = '';
+      side.style.maxHeight = '';
+      side.style.overflow = '';
+      if (leftover) {
+        leftover.style.height = '';
+        leftover.style.maxHeight = '';
+        leftover.style.overflow = '';
+        leftover.style.flex = '';
+      }
+      if (packMount) {
+        packMount.style.height = '';
+        packMount.style.maxHeight = '';
+      }
+
+      if (sideBySide && targetW > 80) {
+        side.style.width = targetW + 'px';
+        side.style.maxWidth = targetW + 'px';
+        side.style.flex = '0 0 ' + targetW + 'px';
+        if (leftover) {
+          leftover.style.width = '100%';
+          leftover.style.maxWidth = '100%';
+          leftover.style.boxSizing = 'border-box';
+          leftover.style.flex = '0 0 auto';
+        }
+        if (packMount) {
+          packMount.style.width = '100%';
+          packMount.style.maxWidth = '100%';
+          packMount.style.boxSizing = 'border-box';
+        }
+      } else {
+        side.style.width = '';
+        side.style.maxWidth = '';
+        side.style.flex = '';
+        if (leftover) {
+          leftover.style.width = '';
+          leftover.style.maxWidth = '';
+        }
+        if (packMount) {
+          packMount.style.width = '';
+          packMount.style.maxWidth = '';
+        }
+      }
+
+      // Stretch side column to left (pool + config + deal info); Leftovers list fills the rest
+      if (sideBySide && left && packMount && !packMount.classList.contains('hidden')) {
+        const targetH = left.offsetHeight;
+        if (targetH > 80) {
+          side.style.height = targetH + 'px';
+          side.style.maxHeight = targetH + 'px';
+          side.style.display = 'flex';
+          side.style.flexDirection = 'column';
+          side.style.overflow = 'hidden';
+          packMount.style.flex = '1 1 auto';
+          packMount.style.minHeight = '0';
+          packMount.style.display = 'flex';
+          packMount.style.flexDirection = 'column';
+          const pack = packMount.querySelector('.leftover-pack');
+          const body = packMount.querySelector('.leftover-pack .pack-body');
+          if (pack) {
+            pack.style.flex = '1 1 auto';
+            pack.style.minHeight = '0';
+            pack.style.display = 'flex';
+            pack.style.flexDirection = 'column';
+            pack.style.overflow = 'hidden';
+          }
+          if (body) {
+            body.style.flex = '1 1 auto';
+            body.style.minHeight = '0';
+            body.style.maxHeight = 'none';
+            body.style.overflowY = 'auto';
+          }
+        }
+      }
+    }
+
+    // Back-compat name used elsewhere
+    function syncLeftoverHeight() {
+      syncLeftoverLayout();
+    }
+
+    function clearLeftoverUi() {
+      const leftoverEl = document.getElementById('leftoverReport');
+      const packMount = document.getElementById('leftoverPackMount');
+      const dealMeta = document.getElementById('dealMeta');
+      const row = document.getElementById('workspaceRow');
+      if (leftoverEl) { leftoverEl.classList.add('hidden'); leftoverEl.innerHTML = ''; }
+      if (packMount) {
+        packMount.innerHTML = '';
+        packMount.classList.add('hidden');
+      }
+      if (dealMeta) { dealMeta.classList.add('hidden'); dealMeta.innerHTML = ''; }
+      if (row) row.classList.remove('has-side');
+    }
+
+    function generatePacks() {
+      validationMsg.textContent = '';
+      validationMsg.className = 'status';
+      clearLeftoverUi();
+
+      const numPacks = parseInt(document.getElementById('numPacks').value, 10) || 0;
+      const commonsN = parseInt(document.getElementById('commonsPerPack').value, 10) || 0;
+      const uncommonsN = parseInt(document.getElementById('uncommonsPerPack').value, 10) || 0;
+      const raresN = parseInt(document.getElementById('raresPerPack').value, 10) || 0;
+      const MIN_COLOR = 2;
+      const seedInput = document.getElementById('seedInput');
+      let seedUsed = (seedInput && seedInput.value.trim()) || '';
+      if (!seedUsed) {
+        seedUsed = randomSeedString();
+        if (seedInput) seedInput.value = seedUsed;
+      }
+
+      if (numPacks < 1) {
+        validationMsg.textContent = 'Number of packs must be at least 1.';
+        validationMsg.className = 'status err';
+        renderDealMeta({
+          seedUsed: seedUsed,
+          attempts: 0,
+          numPacks: numPacks,
+          commonsN: commonsN,
+          uncommonsN: uncommonsN,
+          raresN: raresN,
+          ok: false,
+          failureReasons: ['Number of packs must be at least 1.']
+        });
+        return;
+      }
+      const needC = numPacks * commonsN; // non-land commons only
+      const needU = numPacks * uncommonsN;
+      const needR = numPacks * raresN;
+      const nonLandCommons = pools.Common.filter(function (c) { return !isCommonLand(c); });
+      const commonLandPool = pools.Common.filter(function (c) { return isCommonLand(c); });
+      if (nonLandCommons.length < needC || pools.Uncommon.length < needU || pools.Rare.length < needR) {
+        const msg =
+          'Not enough cards in the cube. Need ' + needC + ' non-land commons / ' + needU + 'U / ' + needR +
+          'R but have ' + nonLandCommons.length + ' non-land C / ' + commonLandPool.length +
+          ' common lands / ' + pools.Uncommon.length + 'U / ' + pools.Rare.length + 'R.';
+        validationMsg.textContent = msg;
+        validationMsg.className = 'status err';
+        resultsSection.classList.add('hidden');
+        generatedPacks = [];
+        renderDealMeta({
+          seedUsed: seedUsed,
+          attempts: 0,
+          numPacks: numPacks,
+          commonsN: commonsN,
+          uncommonsN: uncommonsN,
+          raresN: raresN,
+          ok: false,
+          failureReasons: [
+            'Pool is too small for this pack configuration.',
+            'Need ' + needC + ' non-land commons (have ' + nonLandCommons.length + ').',
+            'Need ' + needU + ' uncommons (have ' + pools.Uncommon.length + ').',
+            'Need ' + needR + ' rares/mythics (have ' + pools.Rare.length + ').',
+            'Cube also has ' + commonLandPool.length + ' common land' + (commonLandPool.length === 1 ? '' : 's') + ' (land slot only; not counted as regular commons).'
+          ]
+        });
+        return;
+      }
+
+      const monoCounts = countMonoInPools().mono;
+      const requiredPerColor = numPacks * MIN_COLOR;
+      const shortColors = [];
+      for (const letter of ['W', 'U', 'B', 'R', 'G']) {
+        if (monoCounts[letter] < requiredPerColor) {
+          shortColors.push(letter + ' (have ' + monoCounts[letter] + ', need ' + requiredPerColor + ')');
+        }
+      }
+      if (shortColors.length) {
+        validationMsg.textContent =
+          'Impossible to put ' + MIN_COLOR + ' mono-color cards of each color in every pack. Short on: ' +
+          shortColors.join(', ') + '.';
+        validationMsg.className = 'status err';
+        resultsSection.classList.add('hidden');
+        generatedPacks = [];
+        renderDealMeta({
+          seedUsed: seedUsed,
+          attempts: 0,
+          numPacks: numPacks,
+          commonsN: commonsN,
+          uncommonsN: uncommonsN,
+          raresN: raresN,
+          ok: false,
+          failureReasons: [
+            'Not enough mono-colour cards in the whole cube for ≥' + MIN_COLOR + ' of each colour in every pack.',
+            'Required per colour across all packs: ' + requiredPerColor + '.',
+            'Shortfalls: ' + shortColors.join('; ') + '.',
+            'Multicolour and colourless cards do not count toward these minimums.'
+          ]
+        });
+        return;
+      }
+
+      let packs = null;
+      let attempts = 0;
+      const maxAttempts = 100;
+      const failTallies = Object.create(null);
+      let dealFailCount = 0;
+      while (attempts < maxAttempts) {
+        attempts++;
+        const rng = makeRng(seedUsed, attempts);
+        const commonDeal = dealCommonsAndLands(pools.Common, numPacks, commonsN, rng);
+        if (!commonDeal) {
+          dealFailCount++;
+          failTallies['Could not deal non-land commons'] =
+            (failTallies['Could not deal non-land commons'] || 0) + 1;
+          packs = null;
+          continue;
+        }
+        const uTaken = shuffle(pools.Uncommon, rng).slice(0, needU);
+        const rTaken = shuffle(pools.Rare, rng).slice(0, needR);
+        packs = [];
+        for (let p = 0; p < numPacks; p++) {
+          packs.push({
+            common: commonDeal.commons[p],
+            land: commonDeal.lands[p],
+            uncommon: uTaken.slice(p * uncommonsN, (p + 1) * uncommonsN),
+            rare: rTaken.slice(p * raresN, (p + 1) * raresN)
+          });
+        }
+        resolveDuplicateNames(packs);
+        // Rotate colour-repair order each attempt so failure reasons aren't biased to W→U→B→R→G
+        balancePackColors(packs, MIN_COLOR, rotateColorOrder(attempts - 1));
+        const check = packsAreLegal(packs, commonsN, uncommonsN, raresN, MIN_COLOR);
+        if (check.ok) break;
+        const t = check.tallies || {};
+        Object.keys(t).forEach(function (k) {
+          failTallies[k] = (failTallies[k] || 0) + t[k];
+        });
+        packs = null;
+      }
+
+      if (!packs) {
+        const ranked = Object.keys(failTallies)
+          .map(function (k) { return { reason: k, n: failTallies[k] }; })
+          .sort(function (a, b) { return b.n - a.n; });
+        const failureReasons = [
+          'No legal deal after ' + maxAttempts + ' attempts.'
+        ];
+        ranked.forEach(function (row) {
+          failureReasons.push(row.reason + ' ×' + row.n);
+        });
+        if (!ranked.length) {
+          failureReasons.push('No failure details recorded.');
+        }
+        if (dealFailCount) {
+          failureReasons.push('Tip: lower pack count or commons-per-pack if the common pool is tight.');
+        }
+        validationMsg.textContent =
+          'Could not build legal packs after ' + maxAttempts + ' attempts (seed ' + seedUsed + ').';
+        validationMsg.className = 'status err';
+        resultsSection.classList.add('hidden');
+        generatedPacks = [];
+        renderDealMeta({
+          seedUsed: seedUsed,
+          attempts: attempts,
+          numPacks: numPacks,
+          commonsN: commonsN,
+          uncommonsN: uncommonsN,
+          raresN: raresN,
+          ok: false,
+          failureReasons: failureReasons
+        });
+        return;
+      }
+
+      generatedPacks = packs;
+      validationMsg.textContent = '';
+      validationMsg.className = 'status';
+      resultsSection.classList.remove('hidden');
+      renderDealMeta({
+        seedUsed: seedUsed,
+        attempts: attempts,
+        numPacks: numPacks,
+        commonsN: commonsN,
+        uncommonsN: uncommonsN,
+        raresN: raresN,
+        ok: true
+      });
+      renderLeftoverReport(packs);
+      renderPacks();
+      // After packs exist: match leftover width to a pack card + height to config+deal
+      function lockLayout() {
+        syncLeftoverLayout();
+      }
+      requestAnimationFrame(function () {
+        lockLayout();
+        requestAnimationFrame(lockLayout);
+        setTimeout(lockLayout, 50);
+        setTimeout(lockLayout, 200);
+      });
+    }
+
+    /**
+     * Deal non-land commons + exactly one land per pack.
+     * Land: 33% cube common land if available, else random basic (WUBRG).
+     * Returns { commons: Card[][], lands: Card[] } or null.
+     */
+    function dealCommonsAndLands(commonPool, numPacks, commonsN, rng) {
+      const cubeLands = [];
+      const nonLands = [];
+      shuffle(commonPool, rng).forEach(function (c) {
+        if (isCommonLand(c)) cubeLands.push(c);
+        else if (!c.isLand) nonLands.push(c);
+      });
+
+      const needNonLand = numPacks * commonsN;
+      if (nonLands.length < needNonLand) return null;
+
+      const commons = [];
+      let ni = 0;
+      for (let p = 0; p < numPacks; p++) {
+        const arr = [];
+        for (let k = 0; k < commonsN; k++) arr.push(nonLands[ni++]);
+        commons.push(arr);
+      }
+
+      const lands = [];
+      let li = 0;
+      for (let p = 0; p < numPacks; p++) {
+        if (li < cubeLands.length && rng() < CUBE_LAND_CHANCE) {
+          lands.push(cubeLands[li++]);
+        } else {
+          lands.push(makeBasicLand(rng));
+        }
+      }
+      return { commons: commons, lands: lands };
+    }
+
+    function packsAreLegal(packs, commonsN, uncommonsN, raresN, minColor) {
+      // Aggregate by failure type (no per-pack names); values = how many packs hit that issue
+      const tallies = Object.create(null);
+      function bump(msg) {
+        tallies[msg] = (tallies[msg] || 0) + 1;
+      }
+      for (let i = 0; i < packs.length; i++) {
+        const pack = packs[i];
+        if (!pack.land) {
+          bump('Missing land slot');
+        }
+        if (pack.common.length !== commonsN) {
+          bump('Wrong non-land common count');
+        } else if (pack.common.some(function (c) { return c.isLand; })) {
+          bump('Land mixed into regular common slots');
+        }
+        if (pack.uncommon.length !== uncommonsN) {
+          bump('Wrong uncommon count');
+        }
+        if (pack.rare.length !== raresN) {
+          bump('Wrong rare/mythic count');
+        }
+        const cards = packCards(pack);
+        const names = cards.map(nameKey);
+        if (new Set(names).size !== names.length) {
+          bump('Duplicate card names in a pack');
+        }
+        for (const letter of ['W', 'U', 'B', 'R', 'G']) {
+          const n = countColor(cards, letter);
+          if (n < minColor) {
+            bump('Mono-' + letter + ' below minimum (≥' + minColor + ')');
+          }
+        }
+      }
+      const keys = Object.keys(tallies);
+      return keys.length ? { ok: false, tallies: tallies } : { ok: true, tallies: {} };
+    }
+
+    function packCards(pack) {
+      const land = pack.land ? [pack.land] : [];
+      return pack.rare.concat(pack.uncommon, pack.common, land);
+    }
+
+    function countColor(cards, letter) {
+      return cards.filter(c => c.colors && c.colors.length === 1 && c.colors === letter).length;
+    }
+
+    function isMonoColor(card, letter) {
+      return !!(card.colors && card.colors.length === 1 && card.colors === letter);
+    }
+
+    function nameKey(card) {
+      return (card.name || '').toLowerCase();
+    }
+
+    function packHasName(pack, name) {
+      const key = name.toLowerCase();
+      return packCards(pack).some(c => nameKey(c) === key);
+    }
+
+    function packsHaveDuplicateNames(packs) {
+      return packs.some(pack => {
+        const names = packCards(pack).map(nameKey);
+        return new Set(names).size !== names.length;
+      });
+    }
+
+    function resolveDuplicateNames(packs) {
+      // Same-rarity swaps across packs (non-land slots only; land slot is separate)
+      for (let guard = 0; guard < 50; guard++) {
+        if (!packsHaveDuplicateNames(packs)) return;
+        for (let pi = 0; pi < packs.length; pi++) {
+          const pack = packs[pi];
+          const seen = Object.create(null);
+          const cards = packCards(pack);
+          for (const card of cards) {
+            if (card.isLand || card.isBasicLand) continue;
+            const k = nameKey(card);
+            if (!seen[k]) { seen[k] = true; continue; }
+            const bucket = card.rarity === 'Rare' ? 'rare' : (card.rarity === 'Uncommon' ? 'uncommon' : 'common');
+            let swapped = false;
+            for (let pj = 0; pj < packs.length; pj++) {
+              if (pj === pi) continue;
+              const other = packs[pj];
+              if (packHasName(other, card.name)) continue;
+              for (let oi = 0; oi < other[bucket].length; oi++) {
+                const cand = other[bucket][oi];
+                if (cand.isLand || cand.isBasicLand) continue;
+                if (packHasName(pack, cand.name)) continue;
+                if (nameKey(cand) === k) continue;
+                other[bucket][oi] = card;
+                const idx = pack[bucket].indexOf(card);
+                if (idx !== -1) pack[bucket][idx] = cand;
+                swapped = true;
+                break;
+              }
+              if (swapped) break;
+            }
+          }
+        }
+      }
+    }
+
+    var COLOR_ORDER_BASE = ['W', 'U', 'B', 'R', 'G'];
+
+    function rotateColorOrder(offset) {
+      const n = COLOR_ORDER_BASE.length;
+      const o = ((offset % n) + n) % n;
+      const out = [];
+      for (let i = 0; i < n; i++) out.push(COLOR_ORDER_BASE[(o + i) % n]);
+      return out;
+    }
+
+    function colorBalanceScore(packs, minPer, colorOrder) {
+      const order = colorOrder && colorOrder.length ? colorOrder : COLOR_ORDER_BASE;
+      let deficit = 0;
+      packs.forEach(pack => {
+        const cards = packCards(pack);
+        order.forEach(letter => {
+          const n = countColor(cards, letter);
+          if (n < minPer) deficit += (minPer - n);
+        });
+      });
+      return deficit;
+    }
+
+    function balancePackColors(packs, minPer, colorOrder) {
+      const order = colorOrder && colorOrder.length ? colorOrder : COLOR_ORDER_BASE;
+      function trySwap() {
+        let improved = false;
+        for (let pi = 0; pi < packs.length; pi++) {
+          for (let li = 0; li < order.length; li++) {
+            const letter = order[li];
+            while (countColor(packCards(packs[pi]), letter) < minPer) {
+              // Find a donor pack with excess mono letter
+              let found = false;
+              for (let pj = 0; pj < packs.length; pj++) {
+                if (pj === pi) continue;
+                const other = packs[pj];
+                if (countColor(packCards(other), letter) <= minPer) continue;
+                // Same-rarity swap only (preserves exact C/U/R counts)
+                for (const bucket of ['rare', 'uncommon', 'common']) {
+                  const donorIdx = other[bucket].findIndex(function (c) {
+                    if (bucket === 'common' && isCommonLand(c)) return false;
+                    return isMonoColor(c, letter);
+                  });
+                  if (donorIdx === -1) continue;
+                  const donor = other[bucket][donorIdx];
+                  // Colour balancing only swaps non-land commons; lands stay in the land slot
+                  const takeIdx = packs[pi][bucket].findIndex(c => {
+                    if (bucket === 'common' && isCommonLand(c)) return false;
+                    if (nameKey(c) === nameKey(donor)) return false;
+                    if (packHasName(other, c.name)) return false;
+                    if (isMonoColor(c, letter)) return false;
+                    return true;
+                  });
+                  if (takeIdx === -1) continue;
+                  if (packHasName(packs[pi], donor.name)) continue;
+                  if (bucket === 'common' && isCommonLand(donor)) continue;
+                  const take = packs[pi][bucket][takeIdx];
+                  packs[pi][bucket][takeIdx] = donor;
+                  other[bucket][donorIdx] = take;
+                  found = true;
+                  improved = true;
+                  break;
+                }
+                if (found) break;
+              }
+              if (!found) break;
+            }
+          }
+        }
+        return improved;
+      }
+      for (let i = 0; i < 30; i++) {
+        if (colorBalanceScore(packs, minPer, order) === 0) return;
+        if (!trySwap()) break;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function rarityClass(r) {
+      if (r === 'Rare') return 'rare';
+      if (r === 'Uncommon') return 'uncommon';
+      return 'common';
+    }
+
+    function rarityLabel(r) {
+      if (r === 'Rare') return 'R/M';
+      return r.slice(0, 1);
+    }
+
+    function renderPacks() {
+      packsContainer.innerHTML = '';
+      generatedPacks.forEach((pack, idx) => {
+        const allCards = sortCardsForPack(packCards(pack));
+        const div = document.createElement('div');
+        div.className = 'pack-card';
+        let listHtml = '';
+        allCards.forEach(c => {
+          const tag = c.isBasicLand ? 'L' : rarityLabel(c.rarity);
+          const tagClass = c.isBasicLand || c.isLand ? 'common' : rarityClass(c.rarity);
+          listHtml +=
+            '<li style="' + colorStyle(c.colors) + '">' +
+              '<span class="rarity-tag ' + tagClass + '">' + tag + '</span>' +
+              '<span class="card-name" data-card-name="' + escapeHtml(c.name) + '"' +
+                (c.setCode ? ' data-card-set="' + escapeHtml(c.setCode) + '"' : '') +
+                (c.collectorNumber ? ' data-card-cn="' + escapeHtml(c.collectorNumber) + '"' : '') +
+              '>' + escapeHtml(c.name) + '</span>' +
+              '<span class="color-id">' + escapeHtml(manaDisplay(c)) + '</span>' +
+            '</li>';
+        });
+        div.innerHTML =
+          '<div class="pack-header">' +
+            '<strong>Pack ' + (idx + 1) + '</strong>' +
+            '<span class="count">' + allCards.length + ' cards</span>' +
+          '</div>' +
+          '<div class="pack-body"><ul>' + listHtml + '</ul></div>';
+        packsContainer.appendChild(div);
+      });
+    }
+
+    // ===== Scryfall image cache (IndexedDB) — network only during Preload =====
+    const IDB_NAME = 'mtg-cube-scryfall-db';
+    const IDB_STORE = 'images';
+    const IDB_VERSION = 1;
+    const MAP_STORAGE_KEY = 'mtg-cube-scryfall-map-v2';
+    const scryfallCache = Object.create(null);
+    let previewHideTimer = null;
+    let activePreviewName = null;
+    let lastPointerWasTouch = false;
+    let idbPersistOk = null;
+    const SCRYFALL_API_GAP_MS = 500;
+    let lastScryfallApiAt = 0;
+
+    function canHoverFine() {
+      try {
+        return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      } catch (e) {
+        return !lastPointerWasTouch;
+      }
+    }
+
+    function isOnline() {
+      return typeof navigator !== 'undefined' ? navigator.onLine !== false : true;
+    }
+
+    function onlineFetchEnabled() {
+      return allowNetworkFetch === true;
+    }
+
+    function sleep(ms) {
+      return new Promise(function (r) { setTimeout(r, ms); });
+    }
+
+    async function waitScryfallApiSlot() {
+      const now = Date.now();
+      const wait = SCRYFALL_API_GAP_MS - (now - lastScryfallApiAt);
+      if (wait > 0) await sleep(wait);
+      lastScryfallApiAt = Date.now();
+    }
+
+    function supportsIndexedDB() {
+      return typeof indexedDB !== 'undefined';
+    }
+
+    function openImageDb() {
+      return new Promise(function (resolve, reject) {
+        if (!supportsIndexedDB()) {
+          reject(new Error('IndexedDB not available'));
+          return;
+        }
+        const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+        req.onupgradeneeded = function () {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE);
+          }
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error || new Error('IDB open failed')); };
+      });
+    }
+
+    function idbGet(key) {
+      return openImageDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction(IDB_STORE, 'readonly');
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.get(key);
+          req.onsuccess = function () { resolve(req.result || null); };
+          req.onerror = function () { reject(req.error); };
+          tx.oncomplete = function () { try { db.close(); } catch (e) {} };
+        });
+      });
+    }
+
+    function idbPut(key, value) {
+      return openImageDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction(IDB_STORE, 'readwrite');
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.put(value, key);
+          req.onsuccess = function () { resolve(true); };
+          req.onerror = function () { reject(req.error); };
+          tx.oncomplete = function () { try { db.close(); } catch (e) {} };
+          tx.onerror = function () { reject(tx.error); };
+        });
+      });
+    }
+
+    function idbClear() {
+      return openImageDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction(IDB_STORE, 'readwrite');
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.clear();
+          req.onsuccess = function () { resolve(true); };
+          req.onerror = function () { reject(req.error); };
+          tx.oncomplete = function () { try { db.close(); } catch (e) {} };
+        });
+      });
+    }
+
+    function idbGetStats() {
+      return openImageDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction(IDB_STORE, 'readonly');
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.openCursor();
+          let count = 0;
+          let bytes = 0;
+          req.onsuccess = function () {
+            const cursor = req.result;
+            if (cursor) {
+              const key = cursor.key;
+              if (key !== '__probe__') {
+                const val = cursor.value;
+                if (val instanceof Blob) {
+                  count++;
+                  bytes += val.size;
+                }
+              }
+              cursor.continue();
+            } else {
+              resolve({ count: count, bytes: bytes });
+            }
+          };
+          req.onerror = function () { reject(req.error); };
+          tx.oncomplete = function () { try { db.close(); } catch (e) {} };
+        });
+      });
+    }
+
+    function formatBytes(n) {
+      if (!n || n <= 0) return '0 B';
+      if (n < 1024) return n + ' B';
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+      return (n / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    async function probePersist() {
+      if (idbPersistOk !== null) return idbPersistOk;
+      if (!supportsIndexedDB()) {
+        idbPersistOk = false;
+        return false;
+      }
+      try {
+        const probeName = '__probe__';
+        const blob = new Blob(['ok'], { type: 'text/plain' });
+        await idbPut(probeName, blob);
+        const got = await idbGet(probeName);
+        idbPersistOk = !!(got && got.size >= 0);
+        try {
+          const db = await openImageDb();
+          await new Promise(function (resolve) {
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).delete(probeName);
+            tx.oncomplete = function () { try { db.close(); } catch (e) {} resolve(); };
+          });
+        } catch (e) {}
+        return idbPersistOk;
+      } catch (e) {
+        idbPersistOk = false;
+        return false;
+      }
+    }
+
+    function readNameMap() {
+      try {
+        return JSON.parse(localStorage.getItem(MAP_STORAGE_KEY) || '{}') || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function writeNameMap(map) {
+      try {
+        localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    function cardImageKey(name, setCode, collectorNumber) {
+      const parts = [String(name || '')];
+      if (setCode) parts.push(String(setCode).toLowerCase());
+      if (collectorNumber) parts.push(String(collectorNumber));
+      return parts.join('|');
+    }
+
+    function markNameInMap(key, found) {
+      const map = readNameMap();
+      map[key] = found ? '1' : '0';
+      writeNameMap(map);
+    }
+
+    async function loadFromDeviceCache(name, setCode, collectorNumber) {
+      try {
+        if (!(await probePersist())) return null;
+        const key = cardImageKey(name, setCode, collectorNumber);
+        let blob = await idbGet(key);
+        if ((!blob || !(blob instanceof Blob)) && (setCode || collectorNumber)) {
+          blob = await idbGet(name);
+        }
+        if (!blob || !(blob instanceof Blob) || blob.size === 0) return null;
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function saveToDeviceCache(name, imageUrl, setCode, collectorNumber) {
+      if (!imageUrl) return null;
+      try {
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) return null;
+        const blob = await imgRes.blob();
+        if (!blob || blob.size === 0) return null;
+        const key = cardImageKey(name, setCode, collectorNumber);
+        let saved = false;
+        if (await probePersist()) {
+          try {
+            await idbPut(key, blob);
+            saved = true;
+          } catch (e) {
+            saved = false;
+            idbPersistOk = false;
+          }
+        }
+        if (saved) markNameInMap(key, true);
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function refreshCacheSizeStatus() {
+      const el = document.getElementById('cacheSizeStatus');
+      if (!el) return;
+      try {
+        if (!(await probePersist())) {
+          el.textContent = 'Image cache: unavailable in this browser';
+          return;
+        }
+        const stats = await idbGetStats();
+        if (!stats.count) {
+          el.textContent = 'Image cache: empty (0 cards)';
+        } else {
+          el.textContent = 'Image cache: ' + stats.count + ' card' +
+            (stats.count === 1 ? '' : 's') + ' · ' + formatBytes(stats.bytes);
+        }
+      } catch (e) {
+        el.textContent = 'Image cache: unavailable';
+      }
+    }
+
+    async function clearDeviceImageCache() {
+      preloadToken++;
+      allowNetworkFetch = false;
+      Object.keys(scryfallCache).forEach(function (k) {
+        const v = scryfallCache[k];
+        if (v && typeof v === 'string' && v.indexOf('blob:') === 0) {
+          try { URL.revokeObjectURL(v); } catch (e) {}
+        }
+        delete scryfallCache[k];
+      });
+      try { localStorage.removeItem(MAP_STORAGE_KEY); } catch (e) {}
+      try { if (supportsIndexedDB()) await idbClear(); } catch (e) {}
+      hideCardPreview();
+      await refreshCacheSizeStatus();
+      setPreloadStatus('Saved card images cleared from this device.', true);
+      setTimeout(function () { setPreloadStatus('', false); }, 2500);
+    }
+
+    function hideCardPreview() {
+      activePreviewName = null;
+      if (cardPreview) {
+        cardPreview.style.display = 'none';
+        cardPreview.innerHTML = '<div class="preview-status">Loading…</div>';
+      }
+    }
+
+    function positionCardPreview(clientX, clientY, centered) {
+      if (!cardPreview) return;
+      const pad = 16;
+      const w = 244;
+      const h = cardPreview.offsetHeight || 340;
+      let left, top;
+      if (centered) {
+        left = Math.max(8, (window.innerWidth - w) / 2);
+        top = Math.max(8, Math.min(clientY - h / 2, window.innerHeight - h - 8));
+      } else {
+        left = clientX + pad;
+        top = clientY + pad;
+        if (left + w > window.innerWidth - 8) left = clientX - w - pad;
+        if (top + h > window.innerHeight - 8) top = Math.max(8, clientY - h - pad);
+        if (left < 8) left = 8;
+        if (top < 8) top = 8;
+      }
+      cardPreview.style.left = left + 'px';
+      cardPreview.style.top = top + 'px';
+    }
+
+    function showPreviewStatus(msg) {
+      if (!cardPreview) return;
+      cardPreview.innerHTML = '<div class="preview-status">' + escapeHtml(msg) + '</div>';
+      cardPreview.style.display = 'block';
+    }
+
+    function showPreviewImage(url) {
+      if (!cardPreview) return;
+      cardPreview.innerHTML = '<img src="' + url + '" alt="Card preview">';
+      cardPreview.style.display = 'block';
+    }
+
+    function extractImageUrl(data) {
+      if (!data) return null;
+      if (data.image_uris && data.image_uris.normal) return data.image_uris.normal;
+      if (data.card_faces && data.card_faces[0] && data.card_faces[0].image_uris) {
+        return data.card_faces[0].image_uris.normal || null;
+      }
+      return null;
+    }
+
+    async function fetchScryfallImage(name, setCode, collectorNumber) {
+      const key = cardImageKey(name, setCode, collectorNumber);
+      if (Object.prototype.hasOwnProperty.call(scryfallCache, key)) {
+        return scryfallCache[key];
+      }
+      const cached = await loadFromDeviceCache(name, setCode, collectorNumber);
+      if (cached) {
+        scryfallCache[key] = cached;
+        return cached;
+      }
+      if (!onlineFetchEnabled() || !isOnline()) {
+        return null;
+      }
+      const map = readNameMap();
+      if (map[key] === '0') {
+        scryfallCache[key] = null;
+        return null;
+      }
+      try {
+        if (setCode && collectorNumber) {
+          await waitScryfallApiSlot();
+          const byCn = await fetch(
+            'https://api.scryfall.com/cards/' + encodeURIComponent(String(setCode).toLowerCase()) +
+            '/' + encodeURIComponent(String(collectorNumber)),
+            { headers: { 'Accept': 'application/json' } }
+          );
+          if (byCn.ok) {
+            const data = await byCn.json();
+            const remoteImg = extractImageUrl(data);
+            if (remoteImg) {
+              const localUrl = await saveToDeviceCache(name, remoteImg, setCode, collectorNumber);
+              const finalUrl = localUrl || remoteImg;
+              scryfallCache[key] = finalUrl;
+              return finalUrl;
+            }
+          }
+        }
+        await waitScryfallApiSlot();
+        let namedUrl = 'https://api.scryfall.com/cards/named?exact=' + encodeURIComponent(name);
+        if (setCode) namedUrl += '&set=' + encodeURIComponent(String(setCode).toLowerCase());
+        let res = await fetch(namedUrl, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) {
+          await waitScryfallApiSlot();
+          let fuzzyUrl = 'https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(name);
+          if (setCode) fuzzyUrl += '&set=' + encodeURIComponent(String(setCode).toLowerCase());
+          res = await fetch(fuzzyUrl, { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) {
+            scryfallCache[key] = null;
+            markNameInMap(key, false);
+            return null;
+          }
+        }
+        const data = await res.json();
+        const remoteImg = extractImageUrl(data);
+        if (!remoteImg) {
+          scryfallCache[key] = null;
+          markNameInMap(key, false);
+          return null;
+        }
+        const localUrl = await saveToDeviceCache(name, remoteImg, setCode, collectorNumber);
+        const finalUrl = localUrl || remoteImg;
+        scryfallCache[key] = finalUrl;
+        return finalUrl;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function matchCardForName(requested, cards) {
+      const q = String(requested || '').toLowerCase().trim();
+      if (!q || !cards || !cards.length) return null;
+      let i, card, full, faces;
+      for (i = 0; i < cards.length; i++) {
+        card = cards[i];
+        full = String(card.name || '').toLowerCase();
+        if (full === q) return card;
+      }
+      for (i = 0; i < cards.length; i++) {
+        card = cards[i];
+        full = String(card.name || '').toLowerCase();
+        if (full.indexOf(' // ') === -1) continue;
+        faces = full.split(' // ');
+        if (faces[0] === q || faces[1] === q) return card;
+      }
+      return null;
+    }
+
+    async function fetchCollectionBatch(entries) {
+      await waitScryfallApiSlot();
+      const identifiers = entries.map(function (e) {
+        if (e.setCode && e.collectorNumber) {
+          return {
+            set: String(e.setCode).toLowerCase(),
+            collector_number: String(e.collectorNumber)
+          };
+        }
+        if (e.setCode) {
+          return { name: e.name, set: String(e.setCode).toLowerCase() };
+        }
+        return { name: e.name };
+      });
+      const res = await fetch('https://api.scryfall.com/cards/collection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ identifiers: identifiers })
+      });
+      if (!res.ok) throw new Error('collection HTTP ' + res.status);
+      const body = await res.json();
+      const cards = body.data || [];
+      const found = Object.create(null);
+      const unresolved = [];
+      const usedCardIdx = Object.create(null);
+      entries.forEach(function (e) {
+        let card = null;
+        if (e.setCode && e.collectorNumber) {
+          for (let i = 0; i < cards.length; i++) {
+            if (usedCardIdx[i]) continue;
+            const c = cards[i];
+            if (
+              String(c.set || '').toLowerCase() === String(e.setCode).toLowerCase() &&
+              String(c.collector_number || '') === String(e.collectorNumber)
+            ) {
+              card = c;
+              usedCardIdx[i] = true;
+              break;
+            }
+          }
+        }
+        if (!card) {
+          for (let i = 0; i < cards.length; i++) {
+            if (usedCardIdx[i]) continue;
+            if (e.setCode && String(cards[i].set || '').toLowerCase() !== String(e.setCode).toLowerCase()) continue;
+            if (matchCardForName(e.name, [cards[i]])) {
+              card = cards[i];
+              usedCardIdx[i] = true;
+              break;
+            }
+          }
+        }
+        if (!card) {
+          for (let i = 0; i < cards.length; i++) {
+            if (usedCardIdx[i]) continue;
+            if (matchCardForName(e.name, [cards[i]])) {
+              card = cards[i];
+              usedCardIdx[i] = true;
+              break;
+            }
+          }
+        }
+        if (card) {
+          const img = extractImageUrl(card);
+          if (img) {
+            found[e.key] = img;
+            return;
+          }
+        }
+        unresolved.push(e);
+      });
+      return { found: found, unresolved: unresolved };
+    }
+
+    async function showCardPreviewFor(name, setCode, collectorNumber, clientX, clientY, centered) {
+      if (!name) return;
+      const previewKey = cardImageKey(name, setCode, collectorNumber);
+      activePreviewName = previewKey;
+      showPreviewStatus('Loading…');
+      positionCardPreview(clientX, clientY, centered);
+      const img = await fetchScryfallImage(name, setCode, collectorNumber);
+      if (activePreviewName !== previewKey) return;
+      if (img) {
+        showPreviewImage(img);
+        positionCardPreview(clientX, clientY, centered);
+      } else if (!isOnline()) {
+        showPreviewStatus('Not saved offline');
+        positionCardPreview(clientX, clientY, centered);
+      } else {
+        showPreviewStatus('Not in cache — press Preload card images');
+        positionCardPreview(clientX, clientY, centered);
+      }
+    }
+
+    function previewAttrsFromEl(el) {
+      return {
+        name: el.getAttribute('data-card-name') || '',
+        setCode: el.getAttribute('data-card-set') || '',
+        collectorNumber: el.getAttribute('data-card-cn') || ''
+      };
+    }
+
+    function onCardNameMove(evt) {
+      if (!canHoverFine()) return;
+      if (!cardPreview || cardPreview.style.display === 'none') return;
+      positionCardPreview(evt.clientX, evt.clientY, false);
+    }
+
+    function onCardNameLeave() {
+      if (!canHoverFine()) return;
+      if (previewHideTimer) clearTimeout(previewHideTimer);
+      previewHideTimer = setTimeout(hideCardPreview, 80);
+    }
+
+    document.addEventListener('touchstart', function () {
+      lastPointerWasTouch = true;
+    }, { passive: true });
+    document.addEventListener('mousemove', function () {
+      if (lastPointerWasTouch) lastPointerWasTouch = false;
+    }, { passive: true });
+
+    function bindCardPreviewRoot(root) {
+      if (!root) return;
+      root.addEventListener('mouseover', function (e) {
+        if (!canHoverFine()) return;
+        const el = e.target.closest('.card-name');
+        if (!el || !root.contains(el)) return;
+        if (previewHideTimer) { clearTimeout(previewHideTimer); previewHideTimer = null; }
+        const a = previewAttrsFromEl(el);
+        showCardPreviewFor(a.name, a.setCode, a.collectorNumber, e.clientX, e.clientY, false);
+      });
+      root.addEventListener('mousemove', function (e) {
+        if (e.target.closest('.card-name')) onCardNameMove(e);
+      });
+      root.addEventListener('mouseout', function (e) {
+        const el = e.target.closest('.card-name');
+        if (!el) return;
+        const to = e.relatedTarget;
+        if (to && el.contains(to)) return;
+        onCardNameLeave();
+      });
+      root.addEventListener('click', function (e) {
+        const el = e.target.closest('.card-name');
+        if (!el || !root.contains(el)) return;
+        const a = previewAttrsFromEl(el);
+        if (!a.name) return;
+        const pkey = cardImageKey(a.name, a.setCode, a.collectorNumber);
+        if (activePreviewName === pkey && cardPreview && cardPreview.style.display !== 'none') {
+          hideCardPreview();
+          return;
+        }
+        e.preventDefault();
+        showCardPreviewFor(
+          a.name, a.setCode, a.collectorNumber,
+          e.clientX || window.innerWidth / 2,
+          e.clientY || window.innerHeight / 3,
+          !canHoverFine()
+        );
+      });
+    }
+
+    bindCardPreviewRoot(packsContainer);
+    bindCardPreviewRoot(document.getElementById('leftoverReport'));
+    bindCardPreviewRoot(document.getElementById('leftoverPackMount'));
+
+    document.addEventListener('click', function (e) {
+      if (!cardPreview || cardPreview.style.display === 'none') return;
+      if (e.target.closest('.card-name')) return;
+      if (e.target.closest('#cardPreview')) return;
+      hideCardPreview();
+    });
+
+    function setPreloadStatus(msg, show) {
+      if (!preloadStatus) return;
+      if (!show) {
+        preloadStatus.classList.add('hidden');
+        preloadStatus.textContent = '';
+        return;
+      }
+      preloadStatus.textContent = msg;
+      preloadStatus.classList.remove('hidden');
+      preloadStatus.className = 'status info';
+    }
+
+    function finishPreloadUi() {
+      allowNetworkFetch = false;
+      if (preloadImagesBtn) {
+        preloadImagesBtn.disabled = false;
+        preloadImagesBtn.textContent = 'Preload card images';
+      }
+    }
+
+    async function preloadCubeImages() {
+      const token = ++preloadToken;
+      if (!cubeCards.length) {
+        setPreloadStatus('No cube loaded — upload a CSV first, then press Preload.', true);
+        return;
+      }
+      if (!isOnline()) {
+        setPreloadStatus('You are offline — cannot download. Cached images still work on hover.', true);
+        return;
+      }
+      allowNetworkFetch = true;
+      if (preloadImagesBtn) {
+        preloadImagesBtn.disabled = true;
+        preloadImagesBtn.textContent = 'Preloading…';
+      }
+
+      const entries = [];
+      const seen = Object.create(null);
+      cubeCards.forEach(function (c) {
+        if (!c.name) return;
+        const key = cardImageKey(c.name, c.setCode, c.collectorNumber);
+        if (seen[key]) return;
+        seen[key] = true;
+        entries.push({
+          name: c.name,
+          setCode: c.setCode || '',
+          collectorNumber: c.collectorNumber || '',
+          key: key
+        });
+      });
+      // Also preload the five basics in the cube's primary set (pack land slot)
+      basicLandPreloadEntries().forEach(function (e) {
+        if (seen[e.key]) return;
+        seen[e.key] = true;
+        entries.push(e);
+      });
+      const total = entries.length;
+      let fromDevice = 0;
+      let fromNetwork = 0;
+      let missing = 0;
+      const needFetch = [];
+
+      setPreloadStatus('Checking device cache 0/' + total + '…', true);
+      for (let i = 0; i < entries.length; i++) {
+        if (token !== preloadToken) { finishPreloadUi(); return; }
+        const e = entries[i];
+        if (Object.prototype.hasOwnProperty.call(scryfallCache, e.key) && scryfallCache[e.key]) {
+          fromDevice++;
+        } else {
+          const cached = await loadFromDeviceCache(e.name, e.setCode, e.collectorNumber);
+          if (cached) {
+            scryfallCache[e.key] = cached;
+            fromDevice++;
+          } else {
+            needFetch.push(e);
+          }
+        }
+        if ((i + 1) % 25 === 0 || i === entries.length - 1) {
+          setPreloadStatus(
+            'Checking device cache ' + (i + 1) + '/' + total +
+            ' (' + fromDevice + ' saved, ' + needFetch.length + ' to download)…',
+            true
+          );
+        }
+      }
+
+      if (token !== preloadToken) { finishPreloadUi(); return; }
+
+      const BATCH = 75;
+      const needNamedFallback = [];
+      if (needFetch.length) {
+        const batches = Math.ceil(needFetch.length / BATCH);
+        for (let b = 0; b < batches; b++) {
+          if (token !== preloadToken) { finishPreloadUi(); return; }
+          const slice = needFetch.slice(b * BATCH, (b + 1) * BATCH);
+          setPreloadStatus(
+            'Downloading batch ' + (b + 1) + '/' + batches +
+            ' (' + slice.length + ' cards, preferring CSV set)…',
+            true
+          );
+          try {
+            const result = await fetchCollectionBatch(slice);
+            const foundKeys = Object.keys(result.found);
+            for (let fi = 0; fi < foundKeys.length; fi++) {
+              if (token !== preloadToken) { finishPreloadUi(); return; }
+              const k = foundKeys[fi];
+              const entry = slice.find(function (x) { return x.key === k; });
+              const localUrl = await saveToDeviceCache(
+                entry ? entry.name : k,
+                result.found[k],
+                entry ? entry.setCode : '',
+                entry ? entry.collectorNumber : ''
+              );
+              scryfallCache[k] = localUrl || result.found[k];
+              fromNetwork++;
+            }
+            (result.unresolved || []).forEach(function (e) {
+              needNamedFallback.push(e);
+            });
+          } catch (err) {
+            slice.forEach(function (e) { needNamedFallback.push(e); });
+            setPreloadStatus(
+              'Batch ' + (b + 1) + ' had an error — will retry those cards individually…',
+              true
+            );
+          }
+        }
+
+        if (needNamedFallback.length) {
+          setPreloadStatus(
+            'Retrying ' + needNamedFallback.length + ' cards with individual lookup…',
+            true
+          );
+          for (let ri = 0; ri < needNamedFallback.length; ri++) {
+            if (token !== preloadToken) { finishPreloadUi(); return; }
+            const e = needNamedFallback[ri];
+            try {
+              const map = readNameMap();
+              if (map[e.key] === '0') {
+                delete map[e.key];
+                writeNameMap(map);
+              }
+            } catch (err) {}
+            delete scryfallCache[e.key];
+            const img = await fetchScryfallImage(e.name, e.setCode, e.collectorNumber);
+            if (img) fromNetwork++;
+            else missing++;
+            if ((ri + 1) % 5 === 0 || ri === needNamedFallback.length - 1) {
+              setPreloadStatus(
+                'Individual lookup ' + (ri + 1) + '/' + needNamedFallback.length +
+                ' (saved this run: ' + fromNetwork + ', missing: ' + missing + ')…',
+                true
+              );
+            }
+          }
+        }
+      }
+
+      if (token !== preloadToken) { finishPreloadUi(); return; }
+      const canPersist = await probePersist();
+      let msg;
+      if (fromNetwork === 0 && missing === 0) {
+        msg = 'All ' + total + ' images were already saved on this device.';
+      } else if (!canPersist && fromNetwork > 0) {
+        msg = 'Downloaded for this session only — permanent storage unavailable (common with file://). Use a local server if you need cache across refresh.';
+      } else {
+        msg = 'Done — ' + total + ' cards: ' + fromDevice + ' from device, ' +
+          fromNetwork + ' downloaded & saved, ' + missing + ' missing.';
+      }
+      setPreloadStatus(msg, true);
+      await refreshCacheSizeStatus();
+      finishPreloadUi();
+      setTimeout(function () {
+        if (token === preloadToken) setPreloadStatus('', false);
+      }, canPersist ? 4000 : 8000);
+    }
+
+    // Export
+    function packsToText() {
+      return generatedPacks.map((pack, idx) => {
+        const lines = ['=== Pack ' + (idx + 1) + ' ==='];
+        sortCardsForPack(packCards(pack)).forEach(c => {
+          const tag = c.isBasicLand ? 'L' : rarityLabel(c.rarity);
+          lines.push('[' + tag + '] ' + c.name + '  ' + manaDisplay(c));
+        });
+        return lines.join('\n');
+      }).join('\n\n');
+    }
+
+    function packsToCSV() {
+      const rows = [['Pack', 'Rarity', 'Name']];
+      generatedPacks.forEach((pack, idx) => {
+        packCards(pack).forEach(c => {
+          const label = c.isBasicLand ? 'Basic Land' : (c.isLand ? 'Land' : (c.rarity === 'Rare' ? 'Rare/Mythic' : c.rarity));
+          rows.push([idx + 1, label, c.name]);
+        });
+      });
+      return rows.map(r => r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+    }
+
+    copyAllBtn.addEventListener('click', () => {
+      const text = packsToText();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          copyAllBtn.textContent = 'Copied!';
+          setTimeout(() => { copyAllBtn.textContent = 'Copy All as Text'; }, 1500);
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        copyAllBtn.textContent = 'Copied!';
+        setTimeout(() => { copyAllBtn.textContent = 'Copy All as Text'; }, 1500);
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const csv = packsToCSV();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cube-draft-packs.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    generateBtn.addEventListener('click', generatePacks);
+    window.addEventListener('resize', function () {
+      syncLeftoverHeight();
+    });
+
+    const newSeedBtn = document.getElementById('newSeedBtn');
+    if (newSeedBtn) {
+      newSeedBtn.addEventListener('click', function () {
+        const seedInput = document.getElementById('seedInput');
+        if (seedInput) seedInput.value = randomSeedString();
+      });
+    }
+
+    applyQtyBtn.addEventListener('click', () => {
+      rebuildPoolsFromDefaults();
+      renderSummary();
+      const total = pools.Common.length + pools.Uncommon.length + pools.Rare.length;
+      qtyStatus.textContent = 'Updated — ' + total + ' total copies ready.';
+      qtyStatus.className = 'status ok';
+      resultsSection.classList.add('hidden');
+      generatedPacks = [];
+      validationMsg.textContent = '';
+      clearLeftoverUi();
+    });
+
+    if (preloadImagesBtn) {
+      preloadImagesBtn.addEventListener('click', function () {
+        hideCardPreview();
+        preloadCubeImages();
+      });
+    }
+    if (clearImageCacheBtn) {
+      clearImageCacheBtn.addEventListener('click', function () {
+        clearDeviceImageCache();
+      });
+    }
+
+    const aboutBtn = document.getElementById('aboutBtn');
+    const aboutOverlay = document.getElementById('aboutOverlay');
+    const aboutCloseBtn = document.getElementById('aboutCloseBtn');
+    function openAbout() {
+      if (!aboutOverlay) return;
+      aboutOverlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeAbout() {
+      if (!aboutOverlay) return;
+      aboutOverlay.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    if (aboutBtn) aboutBtn.addEventListener('click', openAbout);
+    if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
+    if (aboutOverlay) {
+      aboutOverlay.addEventListener('click', function (e) {
+        if (e.target === aboutOverlay) closeAbout();
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && aboutOverlay && !aboutOverlay.classList.contains('hidden')) {
+        closeAbout();
+      }
+    });
+
+    refreshCacheSizeStatus();
+  })();
+  </script>
+</body>
+</html>
