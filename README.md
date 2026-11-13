@@ -2,6 +2,21 @@
 
 Generate legal Magic: The Gathering cube draft packs from a CSV export or a Cube Cobra link.
 
+**Repo:** https://github.com/InsanityPilgrim02/mtg-cube-pack-generator
+
+## Status of this repository
+
+PWA shell, README, icons, manifest, and service worker are in this repo.
+
+The full single-file app (`mtg-cube-pack-generator.html`, ~130KB) may need to be added once via the GitHub web UI if it is not already present:
+
+1. Open the repo on GitHub
+2. **Add file → Upload files**
+3. Drag in `mtg-cube-pack-generator.html` from your local project folder
+4. Commit
+
+After that, the app is complete.
+
 ## Features
 
 - Load cube via **CSV** or **Cube Cobra** URL
