@@ -14,21 +14,7 @@ Generate legal Magic: The Gathering cube draft packs from a CSV export or a [Cub
 - Pool report, deal info (including failure reasons), leftover pool with filters
 - Optional Scryfall image preload (stored in the browser)
 - Print layout (3×3 packs per page)
-- PWA shell (installable when served over `http://localhost` or HTTPS)
-
-## Run locally
-
-Serve this folder (do not open as `file://` if you want PWA install):
-
-```bash
-python -m http.server 8080
-```
-
-Then open:
-
-[http://localhost:8080/mtg-cube-pack-generator.html](http://localhost:8080/mtg-cube-pack-generator.html)
-
-Or open [http://localhost:8080/](http://localhost:8080/) — `index.html` redirects to the app.
+- PWA shell (installable when served over HTTPS)
 
 ## How to use
 
