@@ -1,16 +1,513 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=mtg-cube-pack-generator.html">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cube Packs</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <script>
-    location.replace('mtg-cube-pack-generator.html');
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<meta name="description" content="Generate legal Magic: The Gathering cube draft packs from CSV or Cube Cobra.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cube Forge">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>Cube Forge</title>
+<style>
+:root{--ink:#14161a;--panel:#1e2229;--line:#343a44;--mute:#9aa3b0;--amber:#f2a93b;--bench:#2a2f38;--tx:#e8eaee;--ok:#8fd694;--bad:#ff7b7b}
+*{box-sizing:border-box}[hidden]{display:none!important}.hidden{display:none!important}
+body{margin:0;background:var(--bench);color:var(--tx);font:14px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+header.top{flex-wrap:wrap;position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:flex-start;gap:8px 10px;padding:10px 16px;background:var(--ink);border-bottom:2px solid var(--amber)}
+h1{margin:0;font:800 17px/1.1 "Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.urlwrap{flex:1;min-width:240px;display:flex}.urlwrap input{flex:1;min-width:0}
+.expwrap{position:relative}#expMenu{position:absolute;right:0;top:100%;margin-top:4px;z-index:30;min-width:210px;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.45);overflow:hidden}
+#expMenu button{display:block;width:100%;text-align:left;border-radius:0;background:transparent;color:var(--tx);font-weight:600}#expMenu button:hover:not(:disabled){background:var(--bench);filter:none}
+body.drag header.top{outline:2px dashed var(--amber);outline-offset:-4px}
+.wrap{max-width:1200px;margin:0 auto;padding:12px 16px 48px}
+.hint,.mu{color:var(--mute);font-size:12px;margin:4px 0}.mu{margin:0}
+section,.panel,details{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:8px}
+details{padding:0}summary{padding:9px 12px;font-weight:700;cursor:pointer}details>div{padding:4px 12px 12px}
+h2,.panel h4{margin:0 0 10px;font:700 11px/1 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+h3{margin:14px 0 4px;font-size:.95rem;color:var(--amber)}
+button{font:inherit;font-weight:700;min-height:36px;padding:8px 14px;border:0;border-radius:4px;background:var(--amber);color:#111;cursor:pointer;touch-action:manipulation}
+button:hover:not(:disabled){filter:brightness(1.1)}button:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+input{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--ink);color:#fff}
+input::placeholder{color:var(--mute)}
+label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:10px 16px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}.row input{flex:1 1 14rem;width:auto}
+.opt{border:1px dashed var(--line);border-radius:6px;padding:10px;margin-top:8px}.opt:first-child{margin-top:0}.opt.drag{border-color:var(--amber);background:var(--bench)}
+.st{font-size:13px;margin-top:8px;min-height:1.4em}.ok{color:var(--ok)}.err{color:var(--bad)}.info{color:var(--mute)}
+.work{display:grid;gap:12px}.work>div>*:last-child{margin-bottom:0}
+@media(min-width:960px){.work.side{grid-template-columns:1fr 22rem}.side-col{position:relative;min-height:34rem}.side-in{position:absolute;inset:0;display:flex;flex-direction:column}.side-in .panel{flex:none}.side-in .pack.lft .list{flex:1;min-height:0;max-height:none}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}.stats.c5{grid-template-columns:repeat(5,1fr)}.stats.c2{grid-template-columns:1fr 1fr}.stats.c3{grid-template-columns:repeat(3,1fr)}
+.stat{display:flex;flex-direction:column;align-items:center;padding:5px 4px;background:var(--ink);border:1px solid var(--line);border-radius:4px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}.stat b{font-size:16px;letter-spacing:0;color:#fff}
+button.stat{min-height:0;font-weight:400;color:var(--mute)}button.stat.tog.on{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber);background:#333}
+ul.rules{margin:4px 0 8px;padding-left:1.1rem;font-size:13px}
+.seed{font:13px ui-monospace,Menlo,Consolas,monospace;word-break:break-all;color:#fff}
+.packs{display:grid;gap:14px;grid-template-columns:1fr}@media(min-width:640px){.packs{grid-template-columns:repeat(2,1fr)}}@media(min-width:1024px){.packs{grid-template-columns:repeat(3,1fr)}}
+.pack{background:var(--panel);border:1px solid var(--line);border-radius:5px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.pack header{display:flex;justify-content:space-between;padding:7px 12px;background:var(--ink);border-bottom:1px solid var(--line);font-size:13px}
+.list{overflow:auto;padding:8px 10px;margin:0;list-style:none;max-height:26rem}.pack .list{max-height:none;overflow:visible}.pack.lft .list{overflow:auto;max-height:26rem}
+.list li{display:flex;gap:6px;padding:3px 6px;margin-bottom:2px;border-radius:3px;font-size:13px}
+.t-W{background:rgba(245,240,215,.22)}.t-U{background:rgba(59,130,246,.32)}.t-B{background:rgba(0,0,0,.5)}.t-R{background:rgba(239,68,68,.32)}.t-G{background:rgba(34,197,94,.28)}.t-M{background:rgba(242,169,59,.3)}.t-C{background:rgba(154,163,176,.16)}
+.tag{width:2.25rem;flex:none;font-size:12px;font-weight:700;color:var(--tx)}.tag.Rare{color:var(--amber)}.tag.Uncommon{color:var(--mute)}
+.nm{flex:1;min-width:0;cursor:help}.cost{margin-left:auto;font-size:12px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap}
+#results{margin-top:36px}.rh{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--line)}.rh h2{margin:0;font:800 24px/1.1 "Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;letter-spacing:.12em}.rh .row{margin:0}
+#prev{position:fixed;z-index:9999;display:none;width:244px;padding:6px;background:#000;border:1px solid var(--line);border-radius:.6rem;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#prev img{display:block;width:232px;height:auto;border-radius:.45rem;background:var(--panel)}#prev .pm{color:var(--mute);font-size:12px;text-align:center;padding:2rem .5rem}
+dialog{width:min(720px,calc(100% - 24px));max-height:min(88vh,calc(100% - 24px));padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--tx);box-shadow:0 12px 40px rgba(0,0,0,.6);overflow:hidden}
+dialog[open]{display:flex;flex-direction:column}dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:2px solid var(--amber)}
+dialog .hd h2{margin:0;font:800 16px/1 "Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+dialog .bd{overflow:auto;padding:6px 16px 16px;line-height:1.5;font-size:14px}
+dialog h3{margin:16px 0 4px;color:var(--amber);font-size:14px}dialog h3:first-child{margin-top:8px}
+dialog p,dialog ul{margin:4px 0;color:#d4d8de}dialog ul{padding-left:20px}
+code{background:var(--ink);padding:1px 5px;border-radius:3px}
+@media print{#prev{display:none!important}@page{margin:.4in}body{background:#fff;color:#000}.no-print{display:none!important}.wrap{max-width:none;padding:0}#results{margin:0}
+.packs{grid-template-columns:repeat(3,1fr)!important;gap:12px;padding:15px}.pack{background:#fff;border:1pt solid #000;border-radius:0;box-shadow:none;break-inside:avoid;min-height:2.4in}.pack:nth-child(9n){break-after:page}
+.pack header{background:none;color:#000;border-bottom:1pt solid #000}.list li{padding:1px 2px;margin:0;font-size:9pt;color:#000}.nm,.cost,.tag{color:#000}.tag.Rare{color:#b45309}.tag.Uncommon{color:#64748b}
+.t-W{background:#fff}.t-U{background:rgba(59,130,246,.28)}.t-B{background:rgba(30,30,30,.22)}.t-R{background:rgba(239,68,68,.28)}.t-G{background:rgba(34,197,94,.28)}.t-M{background:rgba(234,179,8,.28)}.t-C{background:rgba(148,163,184,.18)}}
+</style>
 </head>
 <body>
-  <p><a href="mtg-cube-pack-generator.html">Open MTG Cube Draft Pack Generator</a></p>
+<header class="top no-print"><h1>Cube Forge</h1>
+<div class="urlwrap"><input type="text" id="cobraUrl" placeholder="Paste a Cube Cobra link — or leave empty to import a CSV / JSON file…" autocomplete="off" spellcheck="false"></div>
+<button id="cobraBtn" title="Import the Cube Cobra link, or a CSV / JSON file if the box is empty">Import</button>
+<input type="file" id="csvIn" accept=".csv,.json,text/csv,application/json" hidden>
+<div class="expwrap"><button id="exp" disabled>Export ▾</button><div id="expMenu" hidden><button type="button" data-exp="copy">Copy all as text</button><button type="button" data-exp="csv">Download CSV</button><button type="button" data-exp="json">Download JSON</button><button type="button" data-exp="print">Print</button></div></div>
+<button id="aboutBtn">About</button></header>
+<div class="wrap">
+
+<div id="prev" class="no-print" aria-hidden="true"></div>
+<dialog id="about" class="no-print"><div class="hd"><h2>About</h2><button id="aboutClose">✕ Close</button></div><div class="bd">
+<h3>What this is</h3>
+<p>Cube Forge builds legal cube draft packs from a CSV, a Cube Cobra list or a saved JSON file. Pack building runs on your device; only Cube Cobra import and image preload need a connection. It's an unofficial fan tool and isn't affiliated with Wizards of the Coast, Cube Cobra or Scryfall.</p>
+
+<h3>Getting started</h3>
+<ul>
+<li><b>Cube Cobra:</b> paste a cube list link or ID into the box at the top and press <b>Import</b>. You need a connection to import.</li>
+<li><b>CSV or JSON:</b> leave the box empty and press <b>Import</b> to pick a file, or drop one anywhere on the page. A CSV needs <code>Name</code> and <code>Rarity</code> columns. Quantity, colour, set, collector number, mana cost, CMC and type line are optional. Colours are worked out from the mana cost when there is no colour column.</li>
+<li><b>Quantities:</b> if the cube has no quantity column, set how many copies of each common, uncommon and rare/mythic you own under <b>Cube quantities</b> and press <b>Apply</b>.</li>
+</ul>
+
+<h3>Pack configuration</h3>
+<ul>
+<li>Set the number of packs and how many non-land commons, uncommons and rares/mythics each pack gets, then press <b>Generate packs</b>.</li>
+<li><b>Seed:</b> the same seed, cube and settings give the same deal. A blank or auto-filled seed is re-rolled on every Generate; type your own, or press <b>New random seed</b>, to pin it.</li>
+</ul>
+
+<h3>Pack rules</h3>
+<ul>
+<li>Exact non-land common, uncommon and rare/mythic counts, plus one land slot.</li>
+<li><b>Land slot:</b> 33% chance of a cube common land (if any remain), otherwise a random basic.</li>
+<li>At least <b>2 mono-colour</b> cards of each colour. Multicolour, colourless and basics don't count toward the minimums.</li>
+<li>No duplicate card names in a pack, and cube quantities are never exceeded.</li>
+<li>Invalid deals are re-rolled up to 100 times. Repairs can swap in unused leftover cards. If every attempt fails, <b>Deal info</b> lists the reasons and how often they happened, which points at thin colours or too many packs for the pool.</li>
+</ul>
+
+<h3>Packs and leftovers</h3>
+<ul>
+<li><b>Sorting:</b> cards are ordered by rarity, then colour, then mana value. Common lands and basics sit at the bottom.</li>
+<li><b>Leftover pool:</b> every cube card not used in a pack. Generated basics aren't counted. Tap the C / U / R/M and colour tiles to filter the list; the colour totals follow the rarities you have selected.</li>
+</ul>
+
+<h3>Card images</h3>
+<ul>
+<li><b>Preview:</b> hover a card name, or tap it on a touch screen, to see its image when it is saved on this device.</li>
+<li><b>Preload card images:</b> downloads from Scryfall (set and collector number when available, plus that set's five basics) and keeps them in the browser. <b>Clear saved card images</b> removes them. Only Preload uses the network.</li>
+</ul>
+
+<h3>Saving and exporting</h3>
+<ul>
+<li><b>Export ▾:</b> copy the packs as text, download a CSV, print (3×3 packs per page), or download <b>JSON</b>.</li>
+<li><b>JSON</b> saves everything: the cube, quantities, settings, seed, generated packs and the cached images for that cube. Import it again to pick up where you left off. Files with images can be large.</li>
+</ul>
+
+<h3>Tips</h3>
+<ul>
+<li>CSV colour tags can be wrong. Cube Cobra import, or a reliable mana cost column, gives better results.</li>
+<li>Land detection needs a type line, which Cube Cobra provides automatically.</li>
+</ul>
+</div></dialog>
+
+<div id="loadSt" class="st hidden no-print" role="status"></div>
+<details class="no-print" open><summary>Card images</summary><div><div class="row" style="margin-top:0"><button id="preBtn">Preload card images</button><button id="clrBtn">Clear saved card images</button></div><div id="cacheSt" class="st info">Image cache: checking…</div><div id="preSt" class="st info hidden"></div></div></details>
+
+<section id="qtySec" class="hidden no-print"><h2>1. Cube quantities by rarity</h2>
+<div class="grid"><div><label for="qC">Commons (each)</label><input type="number" id="qC" min="0" max="20" value="3"></div><div><label for="qU">Uncommons (each)</label><input type="number" id="qU" min="0" max="20" value="2"></div><div><label for="qR">Rares / Mythics (each)</label><input type="number" id="qR" min="0" max="20" value="1"></div></div>
+<div class="row"><button id="qApply">Apply quantities</button><span id="qSt" class="st ok"></span></div></section>
+
+<div id="work" class="work hidden no-print">
+<div><div id="poolRep" class="panel"></div>
+<section><h2 id="cfgH">1. Pack configuration</h2>
+<div class="grid"><div><label for="nP">Number of packs</label><input type="number" id="nP" min="1" max="100" value="24"></div><div><label for="cN">Commons</label><input type="number" id="cN" min="0" max="20" value="10"></div><div><label for="uN">Uncommons</label><input type="number" id="uN" min="0" max="20" value="3"></div><div><label for="rN">Rares / Mythics</label><input type="number" id="rN" min="0" max="10" value="1"></div></div>
+<div class="row"><input id="seed" placeholder="Seed (leave blank for random)" autocomplete="off" spellcheck="false"><button id="newSeed">New random seed</button></div>
+<div class="row"><button class="pri" id="gen">Generate packs</button><span id="vMsg" class="st err" role="status"></span></div></section>
+<div id="meta" class="panel hidden"></div></div>
+<aside id="sideCol" class="side-col hidden"><div class="side-in"><div id="lftRep" class="panel"></div><div class="pack lft" style="flex:1;min-height:0;display:flex;flex-direction:column"><header><b>Leftovers</b><span id="lftCount" class="mu"></span></header><ul id="lftList" class="list"></ul></div></div></aside>
+</div>
+
+<section id="results" class="hidden" style="background:none;border:0;padding:0"><div class="rh no-print"><h2>Generated packs</h2></div><div id="packs" class="packs"></div></section>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id),WUBRG='WUBRG',B=['rare','uncommon','common'];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let cubeName='',lastDeal=null,cube=[],pools={Common:[],Uncommon:[],Rare:[]},packs=[],useQty=false;
+const filt={r:{Common:1,Uncommon:1,Rare:1},c:{W:1,U:1,B:1,R:1,G:1,M:1,C:1}};
+
+/* ---------- parsing ---------- */
+const normRarity=r=>{const s=String(r||'').trim().toLowerCase();return /^[mr]/.test(s)?'Rare':/^u/.test(s)?'Uncommon':/^[cb]/.test(s)?'Common':null};
+const sortW=a=>[...new Set(a)].sort((x,y)=>WUBRG.indexOf(x)-WUBRG.indexOf(y));
+function normColors(raw){let s=String(raw??'').trim().toLowerCase();if(!s||/colou?rless|^(c|-|—|null|land|artifact)$/.test(s))return'';
+ s=s.replace(/white/g,'w').replace(/blue/g,'u').replace(/black/g,'b').replace(/red/g,'r').replace(/green/g,'g');
+ return sortW([...s.toUpperCase()].filter(ch=>WUBRG.includes(ch))).join('')}
+function pips(raw){if(!raw)return null;const s=String(raw).toUpperCase();
+ const t=s.includes('{')?(s.match(/\{[^}]+\}/g)||[]).map(x=>x.slice(1,-1)):(s.match(/\d+|[A-Z]/g)||[]);
+ let g=0,x='';const c={W:0,U:0,B:0,R:0,G:0};
+ t.forEach(k=>{if(/^\d+$/.test(k))g+=+k;else if(/^[XYZ]$/.test(k))x+=k;else if(k==='C')g++;else k.replace(/[^WUBRG]/g,'').slice(0,k.includes('/')?2:9).split('').forEach(l=>c[l]++)});
+ const col=[...WUBRG].map(l=>l.repeat(c[l])).join('');return g||x||col?(g||'')+x+col:null}
+const isLandT=t=>/\bland\b/i.test(t||'');
+function parseCSV(text){text=text.replace(/^\uFEFF/,'');
+ const first=text.split(/\r?\n/,1)[0],d=[',',';','\t'].map(c=>[c,first.split(c).length]).sort((a,b)=>b[1]-a[1])[0][0];
+ const rows=[];let f='',row=[],q=false;
+ for(let i=0;i<text.length;i++){const ch=text[i];
+  if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+  else if(ch==='"')q=true;else if(ch===d){row.push(f);f=''}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(f);f='';if(row.some(x=>x.trim()))rows.push(row);row=[]}else f+=ch}
+ row.push(f);if(row.some(x=>x.trim()))rows.push(row);
+ if(!rows.length)return{headers:[],rows:[]};
+ const headers=rows[0].map(h=>h.trim().toLowerCase());
+ return{headers,rows:rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))}}
+const findCol=(f,c,bad)=>{for(const x of c){const e=f.find(h=>h===x);if(e)return e}for(const x of c){const e=f.find(h=>h.includes(x)&&!(bad&&bad.test(h)));if(e)return e}return null};
+
+function addCard(map,c){const k=c.name.toLowerCase()+'|'+c.rarity,e=map.get(k);
+ if(!e){map.set(k,{...c,rows:1});return}
+ e.rows++;if(c.qty!=null)e.qty=(e.qty||0)+c.qty;
+ for(const p of['colors','set','cn','cmc','pips','type'])if(c[p]&&!e[p])e[p]=c[p];if(c.land)e.land=true}
+const mkCard=(o)=>({name:o.name,rarity:o.rarity,qty:o.qty??null,colors:o.colors??'',set:(o.set||'').toLowerCase(),cn:o.cn||'',cmc:o.cmc??null,pips:o.pips||null,type:o.type||'',land:isLandT(o.type)});
+
+function loadCSV(text,label){
+ const{headers:h,rows}=parseCSV(text);
+ const nameC=findCol(h,['name','card name','card_name','cardname','card']),rarC=findCol(h,['rarity','rar']);
+ if(!nameC)return st('Could not find a Name column.','err');if(!rarC)return st('Could not find a Rarity column.','err');
+ const qtyC=findCol(h,['quantity','qty','count','desired_qty','qty_owned','copies','owned quantity','num owned'],/collector|set|edition|number|id|cmc|mana|price|cost/),
+  colC=findCol(h,['colors','color','colour','mana colors','card colors'],/identity/),
+  setC=findCol(h,['set','set code','set_code','edition','setcode','expansion']),
+  cnC=findCol(h,['collector number','collector_number','collector#','collector no','cn','card number','card_number'],/mtgo|id|price|cmc/),
+  cmcC=findCol(h,['cmc','mana value','manavalue','mana_value','mv','converted mana cost']),
+  mcC=findCol(h,['mana cost','manacost','mana_cost','casting cost'],/identity|color|colour|value|price|cmc/),
+  tyC=findCol(h,['type','type line','type_line','types','card type','typeline']);
+ const map=new Map();useQty=false;
+ rows.forEach(r=>{const name=(r[nameC]||'').trim(),rarity=normRarity(r[rarC]);if(!name||!rarity)return;
+  let qty=null;if(qtyC&&r[qtyC]!==''){const n=parseInt(r[qtyC],10);if(n>=0&&n<=100){qty=n;useQty=true}}
+  const pp=mcC?pips(r[mcC]):null;let colors=colC&&r[colC]!==''?normColors(r[colC]):null;
+  if(colors==null)colors=pp?sortW([...pp].filter(c=>WUBRG.includes(c))).join(''):'';
+  let cmc=cmcC?parseFloat(r[cmcC]):NaN;
+  addCard(map,mkCard({name,rarity,qty,colors,set:setC?r[setC].trim():'',cn:cnC?r[cnC].trim():'',cmc:cmc>=0&&cmc<=99?cmc:null,pips:pp,type:tyC?r[tyC].trim():''}))});
+ cube=[...map.values()];
+ if(!cube.length)return st('No valid cards found in CSV.','err');
+ if(!useQty&&cube.some(c=>c.rows>1)){cube.forEach(c=>c.qty=c.rows);useQty=true}
+ cubeName=String(label||'CSV').replace(/\.csv$/i,'');finish('Loaded "'+cubeName+'"'+(useQty?'':' — set quantities by rarity below.'))}
+
+function cobraId(s){s=String(s||'').trim();if(!s)return null;
+ const u=s.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);if(u)return u[0];
+ const p=s.match(/cubecobra\.com\/cube\/(?:list|overview|playtest|samplepack)\/([^/?#]+)/i)||s.match(/cubecobra\.com\/cube\/[^/]+\/([^/?#]+)/i);
+ if(p)return decodeURIComponent(p[1]);return/^[\w-]+$/.test(s)?s:null}
+function loadCobra(data){const mb=data&&data.cards&&data.cards.mainboard;
+ if(!mb||!mb.length)throw new Error('No mainboard cards in Cube Cobra response.');
+ const map=new Map();useQty=true;
+ mb.forEach(e=>{const d=e.details||{},name=(d.name||'').trim(),rarity=normRarity(d.rarity);if(!name||!rarity)return;
+  const cmc=d.cmc!==''&&d.cmc!=null?Number(d.cmc):null;
+  addCard(map,mkCard({name,rarity,qty:1,colors:sortW((d.colors||[]).map(c=>String(c).toUpperCase()).filter(c=>WUBRG.includes(c))).join(''),set:String(d.set||'').trim(),cn:d.collector_number!=null?String(d.collector_number).trim():'',cmc:cmc>=0&&cmc<=99?cmc:null,pips:Array.isArray(d.parsed_cost)?pips(d.parsed_cost.map(t=>'{'+t+'}').join('')):null,type:d.type||d.type_line||''}))});
+ cube=[...map.values()];cube.forEach(c=>c.qty=c.rows);
+ cubeName=data.name||'Cube Cobra cube';finish(data.name?'Loaded "'+data.name+'"':'Loaded cube from Cube Cobra')}
+
+/* ---------- pools ---------- */
+const defQty=c=>+$(c.rarity==='Common'?'qC':c.rarity==='Uncommon'?'qU':'qR').value||0;
+function rebuild(){pools={Common:[],Uncommon:[],Rare:[]};cube.forEach(c=>{const n=useQty?(c.qty??1):defQty(c);for(let i=0;i<n;i++)pools[c.rarity].push(c)})}
+const isCL=c=>c.land&&c.rarity==='Common';
+const monoOf=c=>c.colors&&c.colors.length===1?c.colors:null;
+function finish(msg){rebuild();$('qtySec').classList.toggle('hidden',useQty);$('cfgH').textContent=(useQty?'1':'2')+'. Pack configuration';
+ st(msg,'ok');pst('');$('work').classList.remove('hidden');resetOut();poolReport()}
+function resetOut(){packs=[];lastDeal=null;syncExp();$('results').classList.add('hidden');$('meta').classList.add('hidden');$('sideCol').classList.add('hidden');$('work').classList.remove('side');$('vMsg').textContent=''}
+function st(m,t){const e=$('loadSt');e.className='st '+(t||'info');e.textContent=m}
+const stat=(l,v,x='')=>`<div class="stat ${x}"><span>${l}</span><b>${v}</b></div>`;
+function poolReport(){const all=[...pools.Common,...pools.Uncommon,...pools.Rare],m={W:0,U:0,B:0,R:0,G:0};let multi=0,cl=0;
+ all.forEach(c=>{const o=monoOf(c);if(o)m[o]++;else if(c.colors)multi++;else cl++});
+ $('poolRep').innerHTML='<h4>Pool report</h4><div class="stats">'+stat('Unique',cube.length)+stat('Copies',all.length)+stat('Common',pools.Common.length)+stat('Uncommon',pools.Uncommon.length)+'</div><div class="stats">'
+  +stat('Rare / Mythic',pools.Rare.length)+stat('Multicolor',multi)+stat('Colourless',cl)+stat('Mono total',Object.values(m).reduce((a,b)=>a+b,0))+'</div><div class="stats c5">'+[...WUBRG].map(l=>stat(l,m[l])).join('')+'</div>'}
+
+/* ---------- RNG ---------- */
+function hash(s){let h=2166136261;for(const ch of String(s)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){let a=hash(seed)>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuf(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function rndSeed(){const a=new Uint32Array(2);crypto.getRandomValues(a);return(a[0].toString(16)+a[1].toString(16)).slice(0,12)}
+
+/* ---------- engine ---------- */
+const BASICS=[['Plains','W'],['Island','U'],['Swamp','B'],['Mountain','R'],['Forest','G']],LAND_CHANCE=.33,MIN=2;
+function topSet(){const n={};cube.forEach(c=>{if(c.set)n[c.set]=(n[c.set]||0)+1});return Object.keys(n).sort((a,b)=>n[b]-n[a])[0]||''}
+const basic=r=>({name:BASICS[Math.floor(r()*5)][0],rarity:'Common',colors:'',set:topSet(),cn:'',cmc:0,pips:null,type:'Basic Land',land:true,basic:true});
+const all=p=>[...p.rare,...p.uncommon,...p.common,...(p.land?[p.land]:[])];
+const has=(p,n)=>all(p).some(c=>c.name.toLowerCase()===n.toLowerCase());
+const cnt=(p,L)=>all(p).filter(c=>monoOf(c)===L).length;
+const dupName=(p,c)=>!c.land&&all(p).filter(x=>x.name.toLowerCase()===c.name.toLowerCase()).length>1;
+
+function deal(seed,att,n,cN,uN,rN){
+ const r=rng(seed+':'+att),com=shuf(pools.Common,r),lands=com.filter(isCL),nl=com.filter(c=>!c.land);
+ if(nl.length<n*cN)return null;
+ const src={common:nl,uncommon:shuf(pools.Uncommon,r),rare:shuf(pools.Rare,r)},need={common:cN,uncommon:uN,rare:rN},sp={};
+ B.forEach(b=>{src[b]=src[b].slice();});
+ const ps=Array.from({length:n},()=>({common:[],uncommon:[],rare:[],land:null}));
+ B.forEach(b=>{for(let i=0;i<n;i++)ps[i][b]=src[b].splice(0,need[b]);sp[b]=src[b]});
+ let li=0;ps.forEach(p=>{p.land=li<lands.length&&r()<LAND_CHANCE?lands[li++]:basic(r)});
+ repair(ps,sp,(att-1)%5);return ps}
+
+/* Fix duplicate names then colour minimums by swapping same-rarity cards with the spare pool or other packs. */
+function repair(ps,sp,rot){
+ const order=[...WUBRG].map((_,i)=>WUBRG[(rot+i)%5]);
+ const swapSp=(p,b,i,j)=>{[p[b][i],sp[b][j]]=[sp[b][j],p[b][i]]};
+ for(let it=0;it<40;it++){let ch=false;
+  ps.forEach((p,pi)=>{
+   B.forEach(b=>p[b].forEach((c,i)=>{if(!dupName(p,c))return;
+    const j=sp[b].findIndex(x=>!has(p,x.name));if(j>-1){swapSp(p,b,i,j);ch=true;return}
+    for(const q of ps){if(q===p)continue;const k=q[b].findIndex(x=>!has(p,x.name)&&!has(q,c.name));if(k>-1){[p[b][i],q[b][k]]=[q[b][k],p[b][i]];ch=true;return}}}));
+   order.forEach(L=>{while(cnt(p,L)<MIN){
+    const victim=b=>p[b].findIndex(c=>monoOf(c)!==L&&(!monoOf(c)||cnt(p,monoOf(c))>MIN));let done=false;
+    for(const b of B){const v=victim(b);if(v<0)continue;
+     const j=sp[b].findIndex(x=>monoOf(x)===L&&!has(p,x.name));if(j>-1){swapSp(p,b,v,j);done=true;break}
+     for(const q of ps){if(q===p||cnt(q,L)<=MIN)continue;const k=q[b].findIndex(x=>monoOf(x)===L&&!has(p,x.name));
+      if(k>-1&&!has(q,p[b][v].name)){[p[b][v],q[b][k]]=[q[b][k],p[b][v]];done=true;break}}
+     if(done)break}
+    if(!done)break;ch=true}})});
+  if(!ch)break}}
+
+function check(ps,cN,uN,rN){const t={},bump=m=>t[m]=(t[m]||0)+1;
+ ps.forEach(p=>{if(!p.land)bump('Missing land slot');
+  if(p.common.length!==cN)bump('Wrong non-land common count');else if(p.common.some(c=>c.land))bump('Land mixed into regular common slots');
+  if(p.uncommon.length!==uN)bump('Wrong uncommon count');if(p.rare.length!==rN)bump('Wrong rare/mythic count');
+  const nm=all(p).map(c=>c.name.toLowerCase());if(new Set(nm).size!==nm.length)bump('Duplicate card names in a pack');
+  [...WUBRG].forEach(L=>{if(cnt(p,L)<MIN)bump('Mono-'+L+' below minimum (≥'+MIN+')')})});
+ return{ok:!Object.keys(t).length,t}}
+
+/* ---------- generate ---------- */
+const val=id=>parseInt($(id).value,10)||0;
+function generate(){
+ const n=val('nP'),cN=val('cN'),uN=val('uN'),rN=val('rN'),sd=$('seed');
+ let seed=sd.value.trim();if(!seed||sd.dataset.auto==='1'){seed=rndSeed();sd.value=seed;sd.dataset.auto='1'}
+ const fail=(reasons,att,msg)=>{packs=[];syncExp();$('vMsg').textContent=msg||reasons[0];$('results').classList.add('hidden');$('sideCol').classList.add('hidden');$('work').classList.remove('side');meta({seed,att,n,cN,uN,rN,ok:false,reasons})};
+ if(n<1)return fail(['Number of packs must be at least 1.'],0);
+ const nC=n*cN,nU=n*uN,nR=n*rN,nonL=pools.Common.filter(c=>!c.land).length,cl=pools.Common.filter(isCL).length;
+ if(nonL<nC||pools.Uncommon.length<nU||pools.Rare.length<nR)
+  return fail(['Pool is too small for this pack configuration.','Need '+nC+' non-land commons (have '+nonL+').','Need '+nU+' uncommons (have '+pools.Uncommon.length+').','Need '+nR+' rares/mythics (have '+pools.Rare.length+').','Cube also has '+cl+' common land'+(cl===1?'':'s')+' (land slot only; not counted as regular commons).'],0,'Not enough cards in the cube.');
+ const m={W:0,U:0,B:0,R:0,G:0};[...pools.Common,...pools.Uncommon,...pools.Rare].forEach(c=>{const o=monoOf(c);if(o)m[o]++});
+ const short=[...WUBRG].filter(l=>m[l]<n*MIN).map(l=>l+' (have '+m[l]+', need '+n*MIN+')');
+ if(short.length)return fail(['Not enough mono-colour cards in the whole cube for ≥'+MIN+' of each colour in every pack.','Required per colour across all packs: '+n*MIN+'.','Shortfalls: '+short.join('; ')+'.','Multicolour and colourless cards do not count toward these minimums.'],0,'Impossible to put '+MIN+' mono-colour cards of each colour in every pack. Short on: '+short.join(', ')+'.');
+ let res=null,att=0;const tally={};
+ while(att<100&&!res){att++;const ps=deal(seed,att,n,cN,uN,rN);
+  if(!ps){tally['Could not deal non-land commons']=(tally['Could not deal non-land commons']||0)+1;continue}
+  const c=check(ps,cN,uN,rN);if(c.ok)res=ps;else Object.entries(c.t).forEach(([k,v])=>tally[k]=(tally[k]||0)+v)}
+ if(!res){const rk=Object.entries(tally).sort((a,b)=>b[1]-a[1]).map(([k,v])=>k+' ×'+v);
+  return fail(['No legal deal after 100 attempts.',...(rk.length?rk:['No failure details recorded.'])],att,'Could not build legal packs after 100 attempts (seed '+seed+').')}
+ packs=res;lastDeal={seed,att,cN,uN,rN};syncExp();$('vMsg').textContent='';meta({seed,att,n,cN,uN,rN,ok:true});leftovers();renderPacks();$('results').classList.remove('hidden')}
+
+function meta(o){const e=$('meta'),pp=o.cN+o.uN+o.rN,pl=(k,w)=>w+(k===1?'':'s');
+ const body=o.ok?'<b class="mu">Each pack</b><ul class="rules"><li><b>'+o.cN+'</b> non-land '+pl(o.cN,'common')+', <b>'+o.uN+'</b> '+pl(o.uN,'uncommon')+', <b>'+o.rN+'</b> rare/mythic'+(o.rN===1?'':'s')+', and <b>1</b> land <span class="mu">('+(pp+1)+' cards)</span></li><li>Land slot: <b>33%</b> chance of a cube common land (if any remain), otherwise a random basic</li><li>Cube common lands only fill the land slot</li><li>At least <b>2</b> mono-colour cards of each colour (W, U, B, R, G)</li><li>Multicolour and colourless do not count toward those minimums</li><li>No duplicate card names in a pack (basics may repeat across packs)</li><li>Cube card quantities are never exceeded</li></ul>'
+  :'<b class="mu">Why generation failed</b><ul class="rules">'+o.reasons.map(r=>'<li>'+esc(r)+'</li>').join('')+'</ul>';
+ e.classList.remove('hidden');e.innerHTML='<h4>Deal info</h4><div class="stats c3">'+stat('Packs',o.n)+stat('Attempts',o.att)+stat('Status','<span style="font-size:.95rem;'+(o.ok?'':'color:#ff7b7b')+'">'+(o.ok?'Legal':'Failed')+'</span>')+'</div>'+body+'<b class="mu">Seed</b><div class="seed">'+esc(o.seed)+'</div>'}
+
+/* ---------- display ---------- */
+function cost(c){if(c.pips)return c.pips;const k=c.colors||'';if(c.cmc!=null){const g=Math.max(0,Math.round(c.cmc)-k.length);return k?(g||'')+k:String(Math.round(c.cmc))}return k||'—'}
+const ckey=c=>!c.colors?6:c.colors.length>1?5:WUBRG.indexOf(c.colors);
+function sortPack(l){const ro={Rare:0,Uncommon:1,Common:2},bot=c=>c.basic||isCL(c);
+ return l.slice().sort((a,b)=>{if(bot(a)!==bot(b))return bot(a)?1:-1;
+  if(bot(a)){if(!!a.basic!==!!b.basic)return a.basic?1:-1;return a.name.localeCompare(b.name)}
+  return ro[a.rarity]-ro[b.rarity]||ckey(a)-ckey(b)||(a.cmc??99)-(b.cmc??99)||a.name.localeCompare(b.name)})}
+const tagOf=c=>c.basic?'L':({Rare:'R/M',Uncommon:'U',Common:'C'})[c.rarity];
+const li=(c,x='')=>`<li ${x} class="t-${grp(c)}"><span class="tag ${c.rarity}">${tagOf(c)}</span><span class="nm" tabindex="0" data-n="${esc(c.name)}" data-s="${esc(c.set)}" data-c="${esc(c.cn)}">${esc(c.name)}</span><span class="cost">${esc(cost(c))}</span></li>`;
+function renderPacks(){$('packs').innerHTML=packs.map((p,i)=>{const l=sortPack(all(p));
+ return`<div class="pack"><header><b>Pack ${i+1}</b><span class="mu">${l.length} cards</span></header><ul class="list">${l.map(c=>li(c)).join('')}</ul></div>`}).join('')}
+
+function leftovers(){
+ const used={},left=[];packs.forEach(p=>all(p).forEach(c=>{if(!c.basic){const k=c.name+'\t'+c.rarity;used[k]=(used[k]||0)+1}}));
+ [...pools.Common,...pools.Uncommon,...pools.Rare].forEach(c=>{const k=c.name+'\t'+c.rarity;if(used[k]>0)used[k]--;else left.push(c)});
+ leftoverUi.cards=sortPack(left);$('sideCol').classList.remove('hidden');$('work').classList.add('side');drawLeftovers()}
+const leftoverUi={cards:[]};
+const grp=c=>!c.colors?'C':c.colors.length>1?'M':c.colors;
+function drawLeftovers(){const cs=leftoverUi.cards,rc={Common:0,Uncommon:0,Rare:0},cc={W:0,U:0,B:0,R:0,G:0,M:0,C:0};
+ cs.forEach(c=>{rc[c.rarity]++;if(filt.r[c.rarity])cc[grp(c)]++});
+ const tg=(k,l,v,on)=>`<button class="stat tog ${on?'on':''}" data-k="${k}" aria-pressed="${!!on}"><span>${l}</span><b>${v}</b></button>`,F=filt;
+ $('lftRep').innerHTML='<h4>Leftover pool</h4><div class="stats">'+stat('Left',cs.length,'on')+tg('r:Common','C',rc.Common,F.r.Common)+tg('r:Uncommon','U',rc.Uncommon,F.r.Uncommon)+tg('r:Rare','R/M',rc.Rare,F.r.Rare)+'</div><div class="stats c5">'
+  +[...WUBRG].map(l=>tg('c:'+l,l,cc[l],F.c[l])).join('')+'</div><div class="stats c2">'+tg('c:M','Multi',cc.M,F.c.M)+tg('c:C','Colourless',cc.C,F.c.C)+'</div>';
+ const vis=cs.filter(c=>F.r[c.rarity]&&F.c[grp(c)]);
+ $('lftList').innerHTML=vis.length?vis.map(c=>li(c)).join(''):'<li class="mu">'+(cs.length?'No cards match the filters.':'No leftover cards — entire pool was used.')+'</li>';
+ $('lftCount').textContent=vis.length+' shown · '+cs.length+' total'}
+
+/* ---------- export ---------- */
+const toText=()=>packs.map((p,i)=>['=== Pack '+(i+1)+' ===',...sortPack(all(p)).map(c=>'['+tagOf(c)+'] '+c.name+'  '+cost(c))].join('\n')).join('\n\n');
+function toCSV(){const rows=[['Pack','Rarity','Name']];
+ packs.forEach((p,i)=>all(p).forEach(c=>rows.push([i+1,c.basic?'Basic Land':c.land?'Land':c.rarity==='Rare'?'Rare/Mythic':c.rarity,c.name])));
+ return rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n')}
+
+/* ---------- card images: IndexedDB cache, network only during Preload ---------- */
+const IDB='mtg-cube-scryfall-db',STORE='images',MAPK='mtg-cube-scryfall-map-v2',mem={},prev=$('prev');
+let netOK=false,token=0,lastApi=0,active=null,hideT=null,idbOK=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)),online=()=>navigator.onLine!==false;
+/* Scryfall hard limits: /cards/named and /cards/collection = 500 ms apart; other endpoints = 100 ms. HTTP 429 = locked out for 30 s. */
+const slot=async g=>{const w=g-(Date.now()-lastApi);if(w>0)await sleep(w);lastApi=Date.now()};
+const api=async(u,o,gap)=>{for(let t=0;t<2;t++){await slot(gap);const r=await fetch(u,o);if(r.status!==429)return r;await sleep(30000)}throw new Error('Scryfall rate limit (HTTP 429)')};
+const idb=(mode,fn)=>new Promise((res,rej)=>{if(typeof indexedDB==='undefined')return rej(new Error('no idb'));
+ const o=indexedDB.open(IDB,1);o.onupgradeneeded=()=>o.result.createObjectStore(STORE);o.onerror=()=>rej(o.error);
+ o.onsuccess=()=>{const db=o.result,tx=db.transaction(STORE,mode);let out;fn(tx.objectStore(STORE),v=>out=v);
+  tx.oncomplete=()=>{db.close();res(out)};tx.onerror=tx.onabort=()=>{db.close();rej(tx.error)}}});
+const idbGet=k=>idb('readonly',(s,d)=>{s.get(k).onsuccess=e=>d(e.target.result)});
+async function persist(){if(idbOK!==null)return idbOK;try{await idb('readwrite',s=>s.put(new Blob(['ok']),'__probe__'));await idb('readwrite',s=>s.delete('__probe__'));return idbOK=true}catch(e){return idbOK=false}}
+const readMap=()=>{try{return JSON.parse(localStorage.getItem(MAPK)||'{}')||{}}catch(e){return{}}},writeMap=m=>{try{localStorage.setItem(MAPK,JSON.stringify(m))}catch(e){}};
+const imgKey=(n,s,c)=>[n,s&&String(s).toLowerCase(),c].filter(Boolean).join('|');
+const markMap=(k,f)=>{const m=readMap();m[k]=f?'1':'0';writeMap(m)};
+const imgUrl=d=>d&&((d.image_uris&&d.image_uris.normal)||(d.card_faces&&d.card_faces[0]&&d.card_faces[0].image_uris&&d.card_faces[0].image_uris.normal))||null;
+async function localGet(n,s,c){try{if(!await persist())return null;let b=await idbGet(imgKey(n,s,c));if(!b&&(s||c))b=await idbGet(n);return b instanceof Blob&&b.size?URL.createObjectURL(b):null}catch(e){return null}}
+async function localSave(n,url,s,c){try{const r=await fetch(url);if(!r.ok)return null;const b=await r.blob();if(!b.size)return null;const k=imgKey(n,s,c);
+ if(await persist()){try{await idb('readwrite',st=>st.put(b,k));markMap(k,true)}catch(e){idbOK=false}}return URL.createObjectURL(b)}catch(e){return null}}
+async function fetchImg(n,s,c){const k=imgKey(n,s,c);if(k in mem)return mem[k];
+ const l=await localGet(n,s,c);if(l)return mem[k]=l;
+ if(!netOK||!online())return null;if(readMap()[k]==='0')return mem[k]=null;
+ const J={headers:{Accept:'application/json'}},sl=s?s.toLowerCase():'';
+ const save=async d=>{const u=imgUrl(d);return u?(mem[k]=(await localSave(n,u,s,c))||u):null};
+ try{
+  if(sl&&c){const r=await api('https://api.scryfall.com/cards/'+encodeURIComponent(sl)+'/'+encodeURIComponent(c),J,100);if(r.ok){const v=await save(await r.json());if(v)return v}}
+  for(const m of['exact','fuzzy']){const r=await api('https://api.scryfall.com/cards/named?'+m+'='+encodeURIComponent(n)+(sl?'&set='+encodeURIComponent(sl):''),J,500);if(r.ok){const v=await save(await r.json());if(v)return v;break}}
+  mem[k]=null;markMap(k,false);return null}catch(e){return null}}
+const matchName=(req,card)=>{const q=req.toLowerCase().trim(),f=String(card.name||'').toLowerCase();return f===q||(f.includes(' // ')&&f.split(' // ').includes(q))};
+async function batch(ents){
+ const ids=ents.map(e=>e.set&&e.cn?{set:e.set,collector_number:e.cn}:e.set?{name:e.name,set:e.set}:{name:e.name});
+ const r=await api('https://api.scryfall.com/cards/collection',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({identifiers:ids})},500);
+ if(!r.ok)throw new Error('collection HTTP '+r.status);
+ const cards=(await r.json()).data||[],used=new Set(),found={},un=[];
+ ents.forEach(e=>{const pick=f=>{const i=cards.findIndex((c,i)=>!used.has(i)&&f(c));if(i>-1)used.add(i);return i>-1?cards[i]:null};
+  const card=(e.set&&e.cn&&pick(c=>c.set===e.set&&String(c.collector_number)===e.cn))||pick(c=>(!e.set||c.set===e.set)&&matchName(e.name,c))||pick(c=>matchName(e.name,c));
+  const u=card&&imgUrl(card);if(u)found[e.key]=u;else un.push(e)});
+ return{found,un}}
+const fmt=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
+async function cacheStatus(){const e=$('cacheSt');
+ try{if(!await persist())return e.textContent='Image cache: unavailable in this browser';let n=0,b=0;
+  await idb('readonly',s=>{s.openCursor().onsuccess=ev=>{const c=ev.target.result;if(c){if(c.key!=='__probe__'&&c.value instanceof Blob){n++;b+=c.value.size}c.continue()}}});
+  e.textContent=n?'Image cache: '+n+' card'+(n===1?'':'s')+' · '+fmt(b):'Image cache: empty (0 cards)'}catch(x){e.textContent='Image cache: unavailable'}}
+function pst(m){const e=$('preSt');e.textContent=m||'';e.classList.toggle('hidden',!m)}
+async function preload(){const my=++token;
+ if(!cube.length)return pst('No cube loaded — upload a CSV first, then press Preload.');
+ if(!online())return pst('You are offline — cannot download. Cached images still work on hover.');
+ netOK=true;const btn=$('preBtn');btn.disabled=true;btn.textContent='Preloading…';
+ const done=()=>{netOK=false;btn.disabled=false;btn.textContent='Preload card images'};
+ const seen={},ents=[];
+ [...cube,...BASICS.map(b=>({name:b[0],set:topSet(),cn:''}))].forEach(c=>{const k=imgKey(c.name,c.set,c.cn);if(!seen[k]){seen[k]=1;ents.push({name:c.name,set:c.set||'',cn:c.cn||'',key:k})}});
+ let dev=0,net=0,miss=0;const need=[],total=ents.length;
+ for(let i=0;i<total;i++){if(my!==token)return done();const e=ents[i];
+  if(mem[e.key])dev++;else{const l=await localGet(e.name,e.set,e.cn);if(l){mem[e.key]=l;dev++}else need.push(e)}
+  if(i%25===24||i===total-1)pst('Checking device cache '+(i+1)+'/'+total+' ('+dev+' saved, '+need.length+' to download)…')}
+ const fb=[];
+ for(let i=0;i<need.length;i+=75){if(my!==token)return done();const sl=need.slice(i,i+75);
+  pst('Downloading batch '+(i/75+1)+'/'+Math.ceil(need.length/75)+' ('+sl.length+' cards, preferring CSV set)…');
+  try{const r=await batch(sl);for(const k of Object.keys(r.found)){if(my!==token)return done();const e=sl.find(x=>x.key===k);
+    mem[k]=(await localSave(e.name,r.found[k],e.set,e.cn))||r.found[k];net++}fb.push(...r.un)}
+  catch(err){fb.push(...sl);pst('Batch error — will retry those cards individually…')}}
+ for(let i=0;i<fb.length;i++){if(my!==token)return done();const e=fb[i],m=readMap();
+  if(m[e.key]==='0'){delete m[e.key];writeMap(m)}delete mem[e.key];
+  if(await fetchImg(e.name,e.set,e.cn))net++;else miss++;
+  if(i%5===4||i===fb.length-1)pst('Individual lookup '+(i+1)+'/'+fb.length+' (saved this run: '+net+', missing: '+miss+')…')}
+ if(my!==token)return done();
+ const ok=await persist();
+ pst(!net&&!miss?'All '+total+' images were already saved on this device.':!ok&&net?'Downloaded for this session only — permanent storage unavailable (common with file://). Use a local server if you need cache across refresh.':'Done — '+total+' cards: '+dev+' from device, '+net+' downloaded & saved, '+miss+' missing.');
+ await cacheStatus();done();setTimeout(()=>{if(my===token)pst('')},ok?4000:8000)}
+async function clearImgs(){token++;netOK=false;
+ Object.keys(mem).forEach(k=>{if(String(mem[k]).startsWith('blob:'))URL.revokeObjectURL(mem[k]);delete mem[k]});
+ try{localStorage.removeItem(MAPK)}catch(e){}try{await idb('readwrite',s=>s.clear())}catch(e){}
+ hidePrev();await cacheStatus();pst('Saved card images cleared from this device.');setTimeout(()=>pst(''),2500)}
+
+/* preview: hover on desktop, tap/Enter on touch */
+const canHover=()=>matchMedia('(hover: hover) and (pointer: fine)').matches;
+function hidePrev(){active=null;prev.style.display='none'}
+function posPrev(x,y,center){const w=244,h=prev.offsetHeight||340;let l,t;
+ if(center){l=Math.max(8,(innerWidth-w)/2);t=Math.max(8,Math.min(y-h/2,innerHeight-h-8))}
+ else{l=x+16;t=y+16;if(l+w>innerWidth-8)l=x-w-16;if(t+h>innerHeight-8)t=y-h-16;l=Math.max(8,l);t=Math.max(8,t)}
+ prev.style.left=l+'px';prev.style.top=t+'px'}
+const prevMsg=m=>{prev.innerHTML='<div class="pm">'+esc(m)+'</div>';prev.style.display='block'};
+async function showPrev(el,x,y,center){const n=el.dataset.n,s=el.dataset.s,c=el.dataset.c,k=imgKey(n,s,c);
+ active=k;prevMsg('Loading…');posPrev(x,y,center);const u=await fetchImg(n,s,c);if(active!==k)return;
+ if(u){prev.innerHTML='<img src="'+u+'" alt="Card preview">';prev.style.display='block'}
+ else prevMsg(online()?'Not in cache — press Preload card images':'Not saved offline');posPrev(x,y,center)}
+document.addEventListener('mouseover',e=>{if(!canHover())return;const el=e.target.closest('.nm');if(!el)return;clearTimeout(hideT);showPrev(el,e.clientX,e.clientY,false)});
+document.addEventListener('mousemove',e=>{if(canHover()&&prev.style.display==='block'&&e.target.closest('.nm'))posPrev(e.clientX,e.clientY,false)});
+document.addEventListener('mouseout',e=>{const el=e.target.closest('.nm');if(!el||!canHover()||(e.relatedTarget&&el.contains(e.relatedTarget)))return;clearTimeout(hideT);hideT=setTimeout(hidePrev,80)});
+document.addEventListener('click',e=>{const el=e.target.closest('.nm');
+ if(!el){if(prev.style.display==='block'&&!e.target.closest('#prev'))hidePrev();return}
+ if(active===imgKey(el.dataset.n,el.dataset.s,el.dataset.c)&&prev.style.display==='block')return hidePrev();
+ showPrev(el,e.clientX||innerWidth/2,e.clientY||innerHeight/3,!canHover())});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('nm'))e.target.click();else if(e.key==='Escape')hidePrev()});
+$('preBtn').onclick=()=>{hidePrev();preload()};$('clrBtn').onclick=clearImgs;cacheStatus();
+
+/* ---------- wiring ---------- */
+function readFile(f){if(!f)return;const json=/\.json$/i.test(f.name)||f.type==='application/json';
+ if(!json&&!/\.csv$/i.test(f.name)&&f.type!=='text/csv')return st('Please choose a .csv or .json file.','err');
+ const r=new FileReader();
+ r.onload=()=>{try{json?loadJSON(r.result):loadCSV(r.result,f.name)}catch(e){st('Failed to read '+(json?'JSON':'CSV')+': '+e.message,'err')}};r.onerror=()=>st('Failed to read file.','err');r.readAsText(f)}
+const blobToData=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b)});
+async function exportImages(){const out={};if(!await persist())return out;const seen=new Set(),ents=[...cube,...BASICS.map(b=>({name:b[0],set:topSet(),cn:''}))];
+ for(let i=0;i<ents.length;i++){const c=ents[i],k=imgKey(c.name,c.set,c.cn);if(seen.has(k))continue;seen.add(k);
+  try{const b=await idbGet(k);if(b instanceof Blob&&b.size)out[k]=await blobToData(b)}catch(e){}
+  if(i%25===24)st('Collecting cached images '+(i+1)+'/'+ents.length+'…','info')}
+ return out}
+async function importImages(im){const ks=Object.keys(im||{});if(!ks.length||!await persist())return 0;let n=0;
+ for(const k of ks){try{const b=await(await fetch(im[k])).blob();await idb('readwrite',s=>s.put(b,k));markMap(k,true);delete mem[k];n++}catch(e){}}
+ await cacheStatus();return n}
+async function exportJSON(){st('Collecting cached images…','info');const images=await exportImages(),ni=Object.keys(images).length;
+ const d={app:'mtg-cube-pack-generator',version:2,cubeName,useQty,qty:{qC:$('qC').value,qU:$('qU').value,qR:$('qR').value},
+  config:{nP:val('nP'),cN:val('cN'),uN:val('uN'),rN:val('rN'),seed:$('seed').value.trim()},cube,deal:lastDeal,packs,images};
+ const u=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'})),a=document.createElement('a');
+ a.href=u;a.download=(cubeName||'cube').replace(/[^\\w]+/g,'-')+'-packs.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+ st('Exported JSON'+(ni?' with '+ni+' card images.':' (no cached images found — use Preload card images first to include them).'),'ok')}
+function loadJSON(text){const d=JSON.parse(text);if(!d||!Array.isArray(d.cube)||!d.cube.length)throw new Error('not a cube packs JSON file.');
+ const q=d.qty||{},g=d.config||{};['qC','qU','qR'].forEach(k=>{if(q[k]!=null)$(k).value=q[k]});['nP','cN','uN','rN'].forEach(k=>{if(g[k]!=null)$(k).value=g[k]});
+ if(g.seed){$('seed').value=g.seed;$('seed').dataset.auto='0'}
+ cube=d.cube.filter(c=>c&&c.name&&['Common','Uncommon','Rare'].includes(c.rarity));useQty=!!d.useQty;cubeName=d.cubeName||'';
+ const msg='Loaded "'+(cubeName||'JSON')+'" from JSON';finish(msg);
+ if(Array.isArray(d.packs)&&d.packs.length){packs=d.packs;lastDeal=d.deal||null;const k=lastDeal||{};
+  meta({seed:k.seed||g.seed||'',att:k.att||0,n:packs.length,cN:k.cN??val('cN'),uN:k.uN??val('uN'),rN:k.rN??val('rN'),ok:true});
+  syncExp();leftovers();renderPacks();$('results').classList.remove('hidden')}
+ if(d.images)importImages(d.images).then(n=>{if(n)st(msg+' — restored '+n+' card images.','ok')})}
+function syncExp(){$('exp').disabled=!cube.length;document.querySelectorAll('#expMenu [data-exp]').forEach(b=>b.disabled=b.dataset.exp!=='json'&&!packs.length);if(!cube.length)$('expMenu').hidden=true}
+async function fromCobra(){const id=cobraId($('cobraUrl').value),b=$('cobraBtn');
+ if(!id)return st('Paste a Cube Cobra cube URL or ID (e.g. …/cube/list/your-id).','err');
+ b.disabled=true;b.textContent='Loading…';st('Fetching cube from Cube Cobra…','info');
+ try{const r=await fetch('https://cubecobra.com/cube/api/cubeJSON/'+encodeURIComponent(id),{headers:{Accept:'application/json'}});
+  if(!r.ok)throw new Error('Cube Cobra returned HTTP '+r.status+(r.status===404?' (cube not found)':''));loadCobra(await r.json())}
+ catch(e){st('Cube Cobra load failed: '+(e.message||e)+' — if this persists, export the cube as CSV from Cube Cobra and use Option A.','err')}
+ finally{b.disabled=false;b.textContent='Import'}}
+const flash=(b,t)=>{const o=b.textContent;b.textContent=t;setTimeout(()=>b.textContent=o,1500)};
+
+$('csvIn').onchange=e=>{readFile(e.target.files[0]);e.target.value=''};
+addEventListener('dragover',e=>{e.preventDefault();document.body.classList.add('drag')});
+addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('drag')});
+addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('drag');readFile(e.dataTransfer.files[0])});
+const doImport=()=>$('cobraUrl').value.trim()?fromCobra():$('csvIn').click();
+$('cobraBtn').onclick=doImport;$('cobraUrl').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();doImport()}};
+$('exp').onclick=e=>{e.stopPropagation();$('expMenu').hidden=!$('expMenu').hidden};
+$('expMenu').onclick=e=>{const b=e.target.closest('[data-exp]');if(!b||b.disabled)return;$('expMenu').hidden=true;
+ ({copy:copyText,csv:dlCSV,json:exportJSON,print:()=>window.print()})[b.dataset.exp]()};
+document.addEventListener('click',e=>{if(!e.target.closest('.expwrap'))$('expMenu').hidden=true});
+$('qApply').onclick=()=>{rebuild();poolReport();resetOut();$('qSt').textContent='Updated — '+(pools.Common.length+pools.Uncommon.length+pools.Rare.length)+' total copies ready.'};
+$('gen').onclick=generate;
+$('seed').oninput=e=>e.target.dataset.auto='0';
+$('newSeed').onclick=()=>{$('seed').value=rndSeed();$('seed').dataset.auto='1'};
+$('lftRep').onclick=e=>{const b=e.target.closest('.tog');if(!b)return;const[g,k]=b.dataset.k.split(':');filt[g][k]=filt[g][k]?0:1;drawLeftovers()};
+const copyText=async()=>{try{await navigator.clipboard.writeText(toText())}catch(e){const t=document.createElement('textarea');t.value=toText();document.body.append(t);t.select();document.execCommand('copy');t.remove()}flash($('exp'),'Copied!')};
+const dlCSV=()=>{const u=URL.createObjectURL(new Blob([toCSV()],{type:'text/csv'})),a=document.createElement('a');a.href=u;a.download='cube-draft-packs.csv';a.click();URL.revokeObjectURL(u)};
+$('aboutBtn').onclick=()=>$('about').showModal();$('aboutClose').onclick=()=>$('about').close();
+$('about').onclick=e=>{if(e.target===$('about'))$('about').close()};
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+})();
+</script>
 </body>
 </html>

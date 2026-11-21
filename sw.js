@@ -1,66 +1,37 @@
-/* Service worker — caches the app shell for offline / installable use.
-   Scryfall and Cube Cobra network requests are never cached here. */
-const CACHE_NAME = 'mtg-cube-pack-gen-v3';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './mtg-cube-pack-generator.html',
-  './manifest.webmanifest',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg',
-  './sw.js'
-];
+/* App-shell cache. Third-party requests (Cube Cobra, Scryfall) are never intercepted. */
+const CACHE = 'cube-forge-v3';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
-self.addEventListener('install', function (event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(APP_SHELL);
-    }).then(function () {
-      return self.skipWaiting();
-    })
-  );
+self.addEventListener('install', e => {
+  // One missing file (e.g. an icon) must not abort the whole install, so cache each individually.
+  e.waitUntil(caches.open(CACHE)
+    .then(c => Promise.allSettled(SHELL.map(u => c.add(u))))
+    .then(() => self.skipWaiting()));
 });
 
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (key) {
-        if (key !== CACHE_NAME) return caches.delete(key);
-      }));
-    }).then(function () {
-      return self.clients.claim();
-    })
-  );
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
 });
 
-self.addEventListener('fetch', function (event) {
-  const req = event.request;
-  if (req.method !== 'GET') return;
+self.addEventListener('fetch', e => {
+  const req = e.request, url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  const url = new URL(req.url);
+  // Pages: network first so updates arrive, cache fallback when offline.
+  if (req.mode === 'navigate') {
+    e.respondWith(fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy));
+      return res;
+    }).catch(() => caches.match(req).then(r => r || caches.match('./index.html'))));
+    return;
+  }
 
-  // Never intercept third-party APIs (Scryfall, Cube Cobra, etc.)
-  if (url.origin !== self.location.origin) return;
-
-  event.respondWith(
-    caches.match(req).then(function (cached) {
-      if (cached) return cached;
-      return fetch(req).then(function (res) {
-        if (res && res.ok && url.protocol.startsWith('http')) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(req, clone);
-          });
-        }
-        return res;
-      }).catch(function () {
-        if (req.mode === 'navigate') {
-          return caches.match('./mtg-cube-pack-generator.html').then(function (page) {
-            return page || caches.match('./index.html');
-          });
-        }
-        return cached;
-      });
-    })
-  );
+  // Everything else: cache first, fill from network.
+  e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+    return res;
+  })));
 });
