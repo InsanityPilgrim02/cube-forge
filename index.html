@@ -54,7 +54,9 @@ ul.rules{margin:4px 0 8px;padding-left:1.1rem;font-size:13px}
 .pack header{display:flex;justify-content:space-between;padding:7px 12px;background:var(--ink);border-bottom:1px solid var(--line);font-size:13px}
 .list{overflow:auto;padding:8px 10px;margin:0;list-style:none;max-height:26rem}.pack .list{max-height:none;overflow:visible}.pack.lft .list{overflow:auto;max-height:26rem}
 .list li{display:flex;gap:6px;padding:3px 6px;margin-bottom:2px;border-radius:3px;font-size:13px}
-.t-W{background:rgba(245,240,215,.22)}.t-U{background:rgba(59,130,246,.32)}.t-B{background:rgba(0,0,0,.5)}.t-R{background:rgba(239,68,68,.32)}.t-G{background:rgba(34,197,94,.28)}.t-M{background:rgba(242,169,59,.3)}.t-C{background:rgba(154,163,176,.16)}
+.t-W{background:#ece7d2;color:#14161a}.t-U{background:#245b9c}.t-B{background:#33343a}.t-R{background:#a33d37}.t-G{background:#2f7d4b}.t-M{background:#d6ae43;color:#14161a}.t-C{background:#5f6772}
+.list li .cost{color:inherit}.list li .tag.Uncommon{color:#d3d9e2}
+.t-W .tag,.t-M .tag{color:#14161a}.t-W .tag.Rare,.t-M .tag.Rare{color:#7a3f00}.t-W .tag.Uncommon,.t-M .tag.Uncommon{color:#4a4f58}
 .tag{width:2.25rem;flex:none;font-size:12px;font-weight:700;color:var(--tx)}.tag.Rare{color:var(--amber)}.tag.Uncommon{color:var(--mute)}
 .nm{flex:1;min-width:0;cursor:help}.cost{margin-left:auto;font-size:12px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap}
 #results{margin-top:36px}.rh{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--line)}.rh h2{margin:0;font:800 24px/1.1 "Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;letter-spacing:.12em}.rh .row{margin:0}
@@ -75,6 +77,7 @@ code{background:var(--ink);padding:1px 5px;border-radius:3px}
 @media print{#prev{display:none!important}@page{margin:.4in}body{background:#fff;color:#000}.no-print{display:none!important}.wrap{max-width:none;padding:0}#results{margin:0}
 .packs{grid-template-columns:repeat(3,1fr)!important;gap:12px;padding:15px}.pack{background:#fff;border:1pt solid #000;border-radius:0;box-shadow:none;break-inside:avoid;min-height:2.4in}.pack:nth-child(9n){break-after:page}
 .pack header{background:none;color:#000;border-bottom:1pt solid #000}.list li{padding:1px 2px;margin:0;font-size:9pt;color:#000}.nm,.cost,.tag{color:#000}.tag.Rare{color:#b45309}.tag.Uncommon{color:#64748b}
+.list li,.list li .nm,.list li .cost,.list li .tag{color:#000!important}.list li .tag.Rare{color:#b45309!important}.list li .tag.Uncommon{color:#64748b!important}
 .t-W{background:#fff}.t-U{background:rgba(59,130,246,.28)}.t-B{background:rgba(30,30,30,.22)}.t-R{background:rgba(239,68,68,.28)}.t-G{background:rgba(34,197,94,.28)}.t-M{background:rgba(234,179,8,.28)}.t-C{background:rgba(148,163,184,.18)}}
 </style>
 </head>
