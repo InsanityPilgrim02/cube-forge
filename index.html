@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14161a">
-<meta name="cube-build" content="2026-11-22.5"><!-- bump on every release: the Settings update check compares this with the server copy -->
+<meta name="cube-build" content="2026-11-22.6"><!-- bump on every release: the Settings update check compares this with the server copy -->
 <meta name="description" content="Generate legal Magic: The Gathering cube draft packs from CSV or Cube Cobra.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -153,7 +153,7 @@ code{background:var(--ink);padding:1px 5px;border-radius:3px}
 <h3>Settings</h3>
 <ul>
 <li><b>Data:</b> deletes everything Cube Forge has saved on this device. Cubes and packs are never stored automatically, so use <b>Export ▾ → JSON</b> to keep them.</li>
-<li><b>Look for updates:</b> only checks when you press it. If a newer version is on the server the button turns green and reads <b>Update now</b>. The installed app runs from its offline copy and never checks by itself; a normal browser tab checks once when it opens and downloads any newer copy for the next reload.</li>
+<li><b>Look for updates:</b> only checks when you press it. If a newer version is on the server the button turns green and reads <b>Update now</b>. Nothing checks in the background: the app only contacts the server when you press this button, and it runs from its offline copy until you update.</li>
 </ul>
 </div>
 <div class="spane" data-pane="data" hidden>
@@ -546,10 +546,8 @@ $('wipe').onclick=async()=>{
  token++;try{localStorage.removeItem(MAPK)}catch(e){}
  try{await new Promise(r=>{const q=indexedDB.deleteDatabase(IDB);q.onsuccess=q.onerror=q.onblocked=()=>r()})}catch(e){}
  location.replace(location.pathname)};
-/* updates: the installed app never checks by itself, only the Settings button does.
-   A normal browser tab checks once when it opens and downloads any newer copy for the next reload. */
+/* updates: nothing checks in the background. The server is only contacted when the person presses Look for updates in Settings. */
 const APP_CACHE='cube-forge-app',INDEX_URL=new URL('index.html',document.baseURI).href; /* keep both in step with sw.js */
-const isApp=['standalone','fullscreen','minimal-ui'].some(m=>matchMedia('(display-mode: '+m+')').matches)||navigator.standalone===true;
 let updState='idle';
 const updUi=(msg,btn)=>{$('updMsg').textContent=msg;if(btn){$('updBtn').textContent=btn;$('updBtn').classList.add('new')}};
 async function serverBuild(){const r=await fetch(INDEX_URL+'?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
@@ -559,13 +557,12 @@ async function downloadUpdate(){ /* fetch everything first, then swap in, so a f
  for(const u of urls){const r=await fetch(u+(u.includes('?')?'&':'?')+'cb='+Date.now(),{cache:'no-store'});
   if(r.ok)fresh.push([u,r.redirected?new Response(await r.blob(),{status:200,headers:r.headers}):r]);else if(u===INDEX_URL)throw new Error('HTTP '+r.status)}
  for(const [u,r] of fresh)await cache.put(u,r)}
-async function checkUpdate(auto){
+async function checkUpdate(){const auto=false;
  if(!window.caches||!location.protocol.startsWith('http')){if(!auto)updUi('Updates can only be checked when the app is opened from its web address.');return}
  const btn=$('updBtn');btn.disabled=true;if(!auto)updUi('Checking…');
  try{const theirs=await serverBuild(),mine=document.querySelector('meta[name="cube-build"]')?.content;
   if(!theirs||!mine){if(!auto)updUi(!theirs?'The copy on the server has no build tag yet — upload the latest index.html.':'This page has no build tag.')}
   else if(theirs===mine){if(!auto)updUi('You’re up to date.')}
-  else if(auto){await downloadUpdate();updState='downloaded';updUi('A new version was downloaded. Reload to use it.','Reload to update')}
   else{updState='found';updUi('A new version is available. Your saved card images are kept.','Update now')}
  }catch(err){if(!auto)updUi('Couldn’t check for updates ('+(err&&err.message||err)+'). Check your connection and try again.')}
  btn.disabled=false}
@@ -575,7 +572,7 @@ $('updBtn').onclick=async()=>{
   try{await downloadUpdate()}catch(err){updUi('Download failed ('+(err&&err.message||err)+'). Check your connection and try again.');$('updBtn').disabled=false;return}
   return location.reload()}
  checkUpdate(false)};
-if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('./sw.js').catch(()=>{});if(!isApp)checkUpdate(true)}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
 })();
 </script>
 </body>

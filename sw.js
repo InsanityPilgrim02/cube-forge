@@ -9,7 +9,8 @@ const SHELL = [INDEX, './manifest.webmanifest', './icons/icon-192.png', './icons
 self.addEventListener('install', e => {
   // One missing file (e.g. an icon) must not abort the whole install.
   e.waitUntil(caches.open(CACHE)
-    .then(c => Promise.allSettled(SHELL.map(u => c.add(u))))
+    // Only fetch files that aren't cached yet, so a new service worker can never silently replace the app copy.
+    .then(c => Promise.allSettled(SHELL.map(u => c.match(u).then(hit => hit || c.add(u)))))
     .then(() => self.skipWaiting()));
 });
 
