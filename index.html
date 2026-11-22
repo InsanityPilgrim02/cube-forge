@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14161a">
-<meta name="cube-build" content="2026-11-22.1"><!-- bump on every release: the Settings update check compares this with the server copy -->
+<meta name="cube-build" content="2026-11-22.5"><!-- bump on every release: the Settings update check compares this with the server copy -->
 <meta name="description" content="Generate legal Magic: The Gathering cube draft packs from CSV or Cube Cobra.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Cube Forge">
 <link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icons/icon-512.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <title>Cube Forge</title>
@@ -74,11 +75,17 @@ code{background:var(--ink);padding:1px 5px;border-radius:3px}
 .stabs{display:flex;gap:6px;padding:10px 14px 0;flex-wrap:wrap;align-items:center}.stabs .hint{margin:0}
 .stabs button{background:var(--ink);color:#e8eaee;padding:7px 14px;min-height:0}.stabs button.on{background:var(--amber);color:#111}
 .stabs #updBtn{background:#d9453f;color:#fff}.stabs #updBtn.new{background:#2e9e5b}.danger{background:#d9453f;color:#fff}
-@media print{#prev{display:none!important}@page{margin:.4in}body{background:#fff;color:#000}.no-print{display:none!important}.wrap{max-width:none;padding:0}#results{margin:0}
-.packs{grid-template-columns:repeat(3,1fr)!important;gap:12px;padding:15px}.pack{background:#fff;border:1pt solid #000;border-radius:0;box-shadow:none;break-inside:avoid;min-height:2.4in}.pack:nth-child(9n){break-after:page}
-.pack header{background:none;color:#000;border-bottom:1pt solid #000}.list li{padding:1px 2px;margin:0;font-size:9pt;color:#000}.nm,.cost,.tag{color:#000}.tag.Rare{color:#b45309}.tag.Uncommon{color:#64748b}
-.list li,.list li .nm,.list li .cost,.list li .tag{color:#000!important}.list li .tag.Rare{color:#b45309!important}.list li .tag.Uncommon{color:#64748b!important}
-.t-W{background:#fff}.t-U{background:rgba(59,130,246,.28)}.t-B{background:rgba(30,30,30,.22)}.t-R{background:rgba(239,68,68,.28)}.t-G{background:rgba(34,197,94,.28)}.t-M{background:rgba(234,179,8,.28)}.t-C{background:rgba(148,163,184,.18)}}
+@media print{
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{margin:.4in}body{background:#fff}#prev{display:none!important}.no-print{display:none!important}
+.wrap{max-width:none;padding:0}#results{margin:0}
+/* 3 x 3 packs per page, styled like the app: dark panel, header bar, solid colour rows */
+.packs{grid-template-columns:repeat(3,1fr)!important;grid-auto-rows:3.25in;gap:.1in;padding:0}
+.pack{height:3.25in;box-shadow:none;border:1pt solid var(--line);border-radius:6pt;break-inside:avoid}.pack:nth-child(9n){break-after:page}
+.pack header{padding:5pt 9pt;font-size:9pt}
+.pack .list{padding:5pt 6pt}
+.list li{font-size:min(8pt,calc(150pt/var(--n,15)));line-height:1.2;padding:.12em .4em;margin-bottom:.08em;border-radius:2pt}
+.list li .tag{width:2.6em;font-size:1em}.list li .cost{font-size:1em}}
 </style>
 </head>
 <body>
@@ -353,7 +360,7 @@ function sortPack(l){const ro={Rare:0,Uncommon:1,Common:2},bot=c=>c.basic||isCL(
 const tagOf=c=>c.basic?'L':({Rare:'R/M',Uncommon:'U',Common:'C'})[c.rarity];
 const li=(c,x='')=>`<li ${x} class="t-${grp(c)}"><span class="tag ${c.rarity}">${tagOf(c)}</span><span class="nm" tabindex="0" data-n="${esc(c.name)}" data-s="${esc(c.set)}" data-c="${esc(c.cn)}">${esc(c.name)}</span><span class="cost">${esc(cost(c))}</span></li>`;
 function renderPacks(){$('packs').innerHTML=packs.map((p,i)=>{const l=sortPack(all(p));
- return`<div class="pack"><header><b>Pack ${i+1}</b><span class="mu">${l.length} cards</span></header><ul class="list">${l.map(c=>li(c)).join('')}</ul></div>`}).join('')}
+ return`<div class="pack" style="--n:${l.length}"><header><b>Pack ${i+1}</b><span class="mu">${l.length} cards</span></header><ul class="list">${l.map(c=>li(c)).join('')}</ul></div>`}).join('')}
 
 function leftovers(){
  const used={},left=[];packs.forEach(p=>all(p).forEach(c=>{if(!c.basic){const k=c.name+'\t'+c.rarity;used[k]=(used[k]||0)+1}}));
