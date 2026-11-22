@@ -1,9 +1,13 @@
-/* App-shell cache. Third-party requests (Cube Cobra, Scryfall) are never intercepted. */
-const CACHE = 'cube-forge-v3';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+/* Cube Forge service worker.
+   The page is served from the offline copy; updates are fetched into this cache by the page itself
+   (Settings -> Look for updates), so the installed app never changes underneath you.
+   Keep CACHE and INDEX in step with APP_CACHE / INDEX_URL in index.html. */
+const CACHE = 'cube-forge-app';
+const INDEX = './index.html';
+const SHELL = [INDEX, './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
-  // One missing file (e.g. an icon) must not abort the whole install, so cache each individually.
+  // One missing file (e.g. an icon) must not abort the whole install.
   e.waitUntil(caches.open(CACHE)
     .then(c => Promise.allSettled(SHELL.map(u => c.add(u))))
     .then(() => self.skipWaiting()));
@@ -17,19 +21,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  // Never touch third-party APIs (Scryfall, Cube Cobra) or the page's own no-store update checks.
+  if (req.method !== 'GET' || url.origin !== self.location.origin || req.cache === 'no-store') return;
 
-  // Pages: network first so updates arrive, cache fallback when offline.
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy));
-      return res;
-    }).catch(() => caches.match(req).then(r => r || caches.match('./index.html'))));
+    e.respondWith(caches.match(INDEX).then(hit => hit || fetch(req)));
     return;
   }
-
-  // Everything else: cache first, fill from network.
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return res;

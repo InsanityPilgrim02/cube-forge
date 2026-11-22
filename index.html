@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14161a">
+<meta name="cube-build" content="2026-11-22.1"><!-- bump on every release: the Settings update check compares this with the server copy -->
 <meta name="description" content="Generate legal Magic: The Gathering cube draft packs from CSV or Cube Cobra.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,6 +68,9 @@ dialog .bd{overflow:auto;padding:6px 16px 16px;line-height:1.5;font-size:14px}
 dialog h3{margin:16px 0 4px;color:var(--amber);font-size:14px}dialog h3:first-child{margin-top:8px}
 dialog p,dialog ul{margin:4px 0;color:#d4d8de}dialog ul{padding-left:20px}
 code{background:var(--ink);padding:1px 5px;border-radius:3px}
+.stabs{display:flex;gap:6px;padding:10px 14px 0;flex-wrap:wrap;align-items:center}.stabs .hint{margin:0}
+.stabs button{background:var(--ink);color:#e8eaee;padding:7px 14px;min-height:0}.stabs button.on{background:var(--amber);color:#111}
+.stabs #updBtn{background:#d9453f;color:#fff}.stabs #updBtn.new{background:#2e9e5b}.danger{background:#d9453f;color:#fff}
 @media print{#prev{display:none!important}@page{margin:.4in}body{background:#fff;color:#000}.no-print{display:none!important}.wrap{max-width:none;padding:0}#results{margin:0}
 .packs{grid-template-columns:repeat(3,1fr)!important;gap:12px;padding:15px}.pack{background:#fff;border:1pt solid #000;border-radius:0;box-shadow:none;break-inside:avoid;min-height:2.4in}.pack:nth-child(9n){break-after:page}
 .pack header{background:none;color:#000;border-bottom:1pt solid #000}.list li{padding:1px 2px;margin:0;font-size:9pt;color:#000}.nm,.cost,.tag{color:#000}.tag.Rare{color:#b45309}.tag.Uncommon{color:#64748b}
@@ -79,11 +83,13 @@ code{background:var(--ink);padding:1px 5px;border-radius:3px}
 <button id="cobraBtn" title="Import the Cube Cobra link, or a CSV / JSON file if the box is empty">Import</button>
 <input type="file" id="csvIn" accept=".csv,.json,text/csv,application/json" hidden>
 <div class="expwrap"><button id="exp" disabled>Export ▾</button><div id="expMenu" hidden><button type="button" data-exp="copy">Copy all as text</button><button type="button" data-exp="csv">Download CSV</button><button type="button" data-exp="json">Download JSON</button><button type="button" data-exp="print">Print</button></div></div>
-<button id="aboutBtn">About</button></header>
+<button id="settingsBtn">⚙ Settings</button></header>
 <div class="wrap">
 
 <div id="prev" class="no-print" aria-hidden="true"></div>
-<dialog id="about" class="no-print"><div class="hd"><h2>About</h2><button id="aboutClose">✕ Close</button></div><div class="bd">
+<dialog id="settings" class="no-print"><div class="hd"><h2>Settings</h2><button id="sClose">✕ Close</button></div>
+<div class="stabs"><button data-tab="readme" class="on">Readme</button><button data-tab="data">Data</button><button id="updBtn">Look for updates</button><span id="updMsg" class="hint"></span></div>
+<div class="bd"><div class="spane" data-pane="readme">
 <h3>What this is</h3>
 <p>Cube Forge builds legal cube draft packs from a CSV, a Cube Cobra list or a saved JSON file. Pack building runs on your device; only Cube Cobra import and image preload need a connection. It's an unofficial fan tool and isn't affiliated with Wizards of the Coast, Cube Cobra or Scryfall.</p>
 
@@ -132,7 +138,19 @@ code{background:var(--ink);padding:1px 5px;border-radius:3px}
 <li>CSV colour tags can be wrong. Cube Cobra import, or a reliable mana cost column, gives better results.</li>
 <li>Land detection needs a type line, which Cube Cobra provides automatically.</li>
 </ul>
-</div></dialog>
+
+<h3>Settings</h3>
+<ul>
+<li><b>Data:</b> deletes everything Cube Forge has saved on this device. Cubes and packs are never stored automatically, so use <b>Export ▾ → JSON</b> to keep them.</li>
+<li><b>Look for updates:</b> only checks when you press it. If a newer version is on the server the button turns green and reads <b>Update now</b>. The installed app runs from its offline copy and never checks by itself; a normal browser tab checks once when it opens and downloads any newer copy for the next reload.</li>
+</ul>
+</div>
+<div class="spane" data-pane="data" hidden>
+<h3>Delete all data</h3>
+<p>Removes everything Cube Forge has saved on this device: cached card images and the image lookup list. This can't be undone. You'll be asked to confirm first.</p>
+<p>Your loaded cube, settings and packs live only in this tab and aren't saved on the device. Export a JSON file first if you want to keep them.</p>
+<p><button id="wipe" class="danger">Delete all data</button></p>
+</div></div></dialog>
 
 <div id="loadSt" class="st hidden no-print" role="status"></div>
 <details class="no-print" open><summary>Card images</summary><div><div class="row" style="margin-top:0"><button id="preBtn">Preload card images</button><button id="clrBtn">Clear saved card images</button></div><div id="cacheSt" class="st info">Image cache: checking…</div><div id="preSt" class="st info hidden"></div></div></details>
@@ -507,9 +525,46 @@ $('newSeed').onclick=()=>{$('seed').value=rndSeed();$('seed').dataset.auto='1'};
 $('lftRep').onclick=e=>{const b=e.target.closest('.tog');if(!b)return;const[g,k]=b.dataset.k.split(':');filt[g][k]=filt[g][k]?0:1;drawLeftovers()};
 const copyText=async()=>{try{await navigator.clipboard.writeText(toText())}catch(e){const t=document.createElement('textarea');t.value=toText();document.body.append(t);t.select();document.execCommand('copy');t.remove()}flash($('exp'),'Copied!')};
 const dlCSV=()=>{const u=URL.createObjectURL(new Blob([toCSV()],{type:'text/csv'})),a=document.createElement('a');a.href=u;a.download='cube-draft-packs.csv';a.click();URL.revokeObjectURL(u)};
-$('aboutBtn').onclick=()=>$('about').showModal();$('aboutClose').onclick=()=>$('about').close();
-$('about').onclick=e=>{if(e.target===$('about'))$('about').close()};
-if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+/* ---------- settings: readme / data / updates ---------- */
+const showTab=n=>{document.querySelectorAll('.stabs button[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===n));document.querySelectorAll('.spane').forEach(p=>{p.hidden=p.dataset.pane!==n})};
+$('settingsBtn').onclick=()=>{showTab('readme');$('settings').showModal()};
+$('sClose').onclick=()=>$('settings').close();
+$('settings').addEventListener('click',e=>{if(e.target===$('settings'))$('settings').close();else if(e.target.dataset.tab)showTab(e.target.dataset.tab)});
+$('wipe').onclick=async()=>{
+ if(!confirm('Delete ALL Cube Forge data on this device?\n\nThis removes cached card images and the image lookup list, and cannot be undone. Your cube and packs are not saved on the device, so export JSON first if you want to keep them.'))return;
+ token++;try{localStorage.removeItem(MAPK)}catch(e){}
+ try{await new Promise(r=>{const q=indexedDB.deleteDatabase(IDB);q.onsuccess=q.onerror=q.onblocked=()=>r()})}catch(e){}
+ location.replace(location.pathname)};
+/* updates: the installed app never checks by itself, only the Settings button does.
+   A normal browser tab checks once when it opens and downloads any newer copy for the next reload. */
+const APP_CACHE='cube-forge-app',INDEX_URL=new URL('index.html',document.baseURI).href; /* keep both in step with sw.js */
+const isApp=['standalone','fullscreen','minimal-ui'].some(m=>matchMedia('(display-mode: '+m+')').matches)||navigator.standalone===true;
+let updState='idle';
+const updUi=(msg,btn)=>{$('updMsg').textContent=msg;if(btn){$('updBtn').textContent=btn;$('updBtn').classList.add('new')}};
+async function serverBuild(){const r=await fetch(INDEX_URL+'?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
+ const m=/name="cube-build" content="([^"]+)"/.exec(await r.text());return m?m[1]:null}
+async function downloadUpdate(){ /* fetch everything first, then swap in, so a failed download leaves the old version intact */
+ const cache=await caches.open(APP_CACHE),urls=new Set((await cache.keys()).map(r=>r.url));urls.add(INDEX_URL);const fresh=[];
+ for(const u of urls){const r=await fetch(u+(u.includes('?')?'&':'?')+'cb='+Date.now(),{cache:'no-store'});
+  if(r.ok)fresh.push([u,r.redirected?new Response(await r.blob(),{status:200,headers:r.headers}):r]);else if(u===INDEX_URL)throw new Error('HTTP '+r.status)}
+ for(const [u,r] of fresh)await cache.put(u,r)}
+async function checkUpdate(auto){
+ if(!window.caches||!location.protocol.startsWith('http')){if(!auto)updUi('Updates can only be checked when the app is opened from its web address.');return}
+ const btn=$('updBtn');btn.disabled=true;if(!auto)updUi('Checking…');
+ try{const theirs=await serverBuild(),mine=document.querySelector('meta[name="cube-build"]')?.content;
+  if(!theirs||!mine){if(!auto)updUi('Couldn’t tell which version the server has.')}
+  else if(theirs===mine){if(!auto)updUi('You’re up to date.')}
+  else if(auto){await downloadUpdate();updState='downloaded';updUi('A new version was downloaded. Reload to use it.','Reload to update')}
+  else{updState='found';updUi('A new version is available. Your saved card images are kept.','Update now')}
+ }catch(err){if(!auto)updUi('Couldn’t reach the server. Check your connection and try again.')}
+ btn.disabled=false}
+$('updBtn').onclick=async()=>{
+ if(updState==='downloaded')return location.reload();
+ if(updState==='found'){$('updBtn').disabled=true;updUi('Updating…');
+  try{await downloadUpdate()}catch(err){updUi('Download failed. Check your connection and try again.');$('updBtn').disabled=false;return}
+  return location.reload()}
+ checkUpdate(false)};
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('./sw.js').catch(()=>{});if(!isApp)checkUpdate(true)}
 })();
 </script>
 </body>
