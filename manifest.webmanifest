@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Cube Forge",
   "short_name": "Cube Forge",
   "description": "Generate legal Magic: The Gathering cube draft packs from CSV or Cube Cobra.",
