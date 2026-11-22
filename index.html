@@ -546,7 +546,7 @@ const isApp=['standalone','fullscreen','minimal-ui'].some(m=>matchMedia('(displa
 let updState='idle';
 const updUi=(msg,btn)=>{$('updMsg').textContent=msg;if(btn){$('updBtn').textContent=btn;$('updBtn').classList.add('new')}};
 async function serverBuild(){const r=await fetch(INDEX_URL+'?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
- const m=/name="cube-build" content="([^"]+)"/.exec(await r.text());return m?m[1]:null}
+ const t=await r.text(),m=/<meta[^>]*name=["']?cube-build["']?[^>]*content=["']?([^"'>\s]+)/i.exec(t)||/<meta[^>]*content=["']?([^"'>\s]+)["']?[^>]*name=["']?cube-build/i.exec(t);return m?m[1]:null}
 async function downloadUpdate(){ /* fetch everything first, then swap in, so a failed download leaves the old version intact */
  const cache=await caches.open(APP_CACHE),urls=new Set((await cache.keys()).map(r=>r.url));urls.add(INDEX_URL);const fresh=[];
  for(const u of urls){const r=await fetch(u+(u.includes('?')?'&':'?')+'cb='+Date.now(),{cache:'no-store'});
@@ -556,16 +556,16 @@ async function checkUpdate(auto){
  if(!window.caches||!location.protocol.startsWith('http')){if(!auto)updUi('Updates can only be checked when the app is opened from its web address.');return}
  const btn=$('updBtn');btn.disabled=true;if(!auto)updUi('Checking…');
  try{const theirs=await serverBuild(),mine=document.querySelector('meta[name="cube-build"]')?.content;
-  if(!theirs||!mine){if(!auto)updUi('Couldn’t tell which version the server has.')}
+  if(!theirs||!mine){if(!auto)updUi(!theirs?'The copy on the server has no build tag yet — upload the latest index.html.':'This page has no build tag.')}
   else if(theirs===mine){if(!auto)updUi('You’re up to date.')}
   else if(auto){await downloadUpdate();updState='downloaded';updUi('A new version was downloaded. Reload to use it.','Reload to update')}
   else{updState='found';updUi('A new version is available. Your saved card images are kept.','Update now')}
- }catch(err){if(!auto)updUi('Couldn’t reach the server. Check your connection and try again.')}
+ }catch(err){if(!auto)updUi('Couldn’t check for updates ('+(err&&err.message||err)+'). Check your connection and try again.')}
  btn.disabled=false}
 $('updBtn').onclick=async()=>{
  if(updState==='downloaded')return location.reload();
  if(updState==='found'){$('updBtn').disabled=true;updUi('Updating…');
-  try{await downloadUpdate()}catch(err){updUi('Download failed. Check your connection and try again.');$('updBtn').disabled=false;return}
+  try{await downloadUpdate()}catch(err){updUi('Download failed ('+(err&&err.message||err)+'). Check your connection and try again.');$('updBtn').disabled=false;return}
   return location.reload()}
  checkUpdate(false)};
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('./sw.js').catch(()=>{});if(!isApp)checkUpdate(true)}
