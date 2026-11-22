@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14161a">
-<meta name="cube-build" content="2026-11-22.6"><!-- bump on every release: the Settings update check compares this with the server copy -->
+<meta name="cube-build" content="2026-11-22.7"><!-- bump on every release: the Settings update check compares this with the server copy -->
 <meta name="description" content="Generate legal Magic: The Gathering cube draft packs from CSV or Cube Cobra.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Cube Forge">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="./icons/icon-512.svg">
-<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Cube Forge</title>
 <style>
 :root{--ink:#14161a;--panel:#1e2229;--line:#343a44;--mute:#9aa3b0;--amber:#f2a93b;--bench:#2a2f38;--tx:#e8eaee;--ok:#8fd694;--bad:#ff7b7b}
@@ -572,7 +571,7 @@ $('updBtn').onclick=async()=>{
   try{await downloadUpdate()}catch(err){updUi('Download failed ('+(err&&err.message||err)+'). Check your connection and try again.');$('updBtn').disabled=false;return}
   return location.reload()}
  checkUpdate(false)};
-if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 })();
 </script>
 </body>

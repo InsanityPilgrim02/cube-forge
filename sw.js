@@ -1,37 +1,40 @@
-/* Cube Forge service worker.
-   The page is served from the offline copy; updates are fetched into this cache by the page itself
-   (Settings -> Look for updates), so the installed app never changes underneath you.
-   Keep CACHE and INDEX in step with APP_CACHE / INDEX_URL in index.html. */
-const CACHE = 'cube-forge-app';
-const INDEX = './index.html';
-const SHELL = [INDEX, './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+// Cube Forge service worker.
+// Serves the app from its offline copy and NEVER looks for updates by itself: the page's Settings > "Look for updates"
+// button downloads a newer copy into this cache when the user asks. Requests the page marks as no-store go straight to the network.
+// Keep this file unchanged between releases (browsers re-check it on their own, and unchanged bytes mean nothing happens).
+const CACHE = 'cube-forge-app';   // must match APP_CACHE in index.html
+const INDEX = new URL('index.html', self.registration.scope).href;
+const PRECACHE = [INDEX, new URL('manifest.webmanifest', self.registration.scope).href, new URL('apple-touch-icon.png', self.registration.scope).href];
+
+// a redirected response can't be served to a page navigation, so store a clean copy instead
+const clean = async res => res.redirected ? new Response(await res.blob(), { status: 200, headers: res.headers }) : res;
 
 self.addEventListener('install', e => {
-  // One missing file (e.g. an icon) must not abort the whole install.
-  e.waitUntil(caches.open(CACHE)
-    // Only fetch files that aren't cached yet, so a new service worker can never silently replace the app copy.
-    .then(c => Promise.allSettled(SHELL.map(u => c.match(u).then(hit => hit || c.add(u)))))
-    .then(() => self.skipWaiting()));
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(PRECACHE.map(u =>
+    fetch(u).then(clean).then(r => r.ok && c.put(u, r)).catch(() => {})))));
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys()
-    // Only clear this app's own old caches (current + earlier Cube Forge names); never other apps on the same origin.
-    .then(keys => Promise.all(keys.filter(k => k !== CACHE && /^(cube-forge|mtg-cube-pack-gen)/.test(k)).map(k => caches.delete(k))))
-    .then(() => self.clients.claim()));
-});
+self.addEventListener('activate', e => e.waitUntil((async () => {
+  // only this app's own earlier caches; never another app's on the same origin
+  for (const k of await caches.keys()) if (k !== CACHE && /^(cube-forge|mtg-cube-pack-gen)/.test(k)) await caches.delete(k);
+  await self.clients.claim();
+})()));
 
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
-  // Never touch third-party APIs (Scryfall, Cube Cobra) or the page's own no-store update checks.
-  if (req.method !== 'GET' || url.origin !== self.location.origin || req.cache === 'no-store') return;
-
-  if (req.mode === 'navigate') {
-    e.respondWith(caches.match(INDEX).then(hit => hit || fetch(req)));
-    return;
-  }
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
-    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-    return res;
-  })));
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;       // Scryfall / Cube Cobra always use the network
+  if (req.cache === 'no-store' || req.cache === 'reload') return;                // update checks bypass the offline copy
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE), nav = req.mode === 'navigate', key = nav ? INDEX : req;
+    const hit = await cache.match(key);
+    if (hit) return hit;                                                          // offline copy first, always
+    try {
+      const res = await fetch(req);
+      if (res.ok) cache.put(key, (await clean(res.clone())));
+      return res;
+    } catch (err) {
+      return (nav && await cache.match(INDEX)) || Response.error();
+    }
+  })());
 });
