@@ -68,6 +68,7 @@ dialog .bd{overflow:auto;padding:6px 16px 16px;line-height:1.5;font-size:14px}
 dialog h3{margin:16px 0 4px;color:var(--amber);font-size:14px}dialog h3:first-child{margin-top:8px}
 dialog p,dialog ul{margin:4px 0;color:#d4d8de}dialog ul{padding-left:20px}
 code{background:var(--ink);padding:1px 5px;border-radius:3px}
+#loadSt{margin:0}
 .stabs{display:flex;gap:6px;padding:10px 14px 0;flex-wrap:wrap;align-items:center}.stabs .hint{margin:0}
 .stabs button{background:var(--ink);color:#e8eaee;padding:7px 14px;min-height:0}.stabs button.on{background:var(--amber);color:#111}
 .stabs #updBtn{background:#d9453f;color:#fff}.stabs #updBtn.new{background:#2e9e5b}.danger{background:#d9453f;color:#fff}
@@ -152,8 +153,8 @@ code{background:var(--ink);padding:1px 5px;border-radius:3px}
 <p><button id="wipe" class="danger">Delete all data</button></p>
 </div></div></dialog>
 
-<div id="loadSt" class="st hidden no-print" role="status"></div>
-<details class="no-print" open><summary>Card images</summary><div><div class="row" style="margin-top:0"><button id="preBtn">Preload card images</button><button id="clrBtn">Clear saved card images</button></div><div id="cacheSt" class="st info">Image cache: checking…</div><div id="preSt" class="st info hidden"></div></div></details>
+<div id="loadSt" class="st info no-print" role="status"></div>
+<details class="no-print"><summary>Card images</summary><div><div class="row" style="margin-top:0"><button id="preBtn">Preload card images</button><button id="clrBtn">Clear saved card images</button></div><div id="cacheSt" class="st info">Image cache: checking…</div><div id="preSt" class="st info hidden"></div></div></details>
 
 <section id="qtySec" class="hidden no-print"><h2>1. Cube quantities by rarity</h2>
 <div class="grid"><div><label for="qC">Commons (each)</label><input type="number" id="qC" min="0" max="20" value="3"></div><div><label for="qU">Uncommons (each)</label><input type="number" id="qU" min="0" max="20" value="2"></div><div><label for="qR">Rares / Mythics (each)</label><input type="number" id="qR" min="0" max="20" value="1"></div></div>
@@ -252,9 +253,9 @@ function rebuild(){pools={Common:[],Uncommon:[],Rare:[]};cube.forEach(c=>{const 
 const isCL=c=>c.land&&c.rarity==='Common';
 const monoOf=c=>c.colors&&c.colors.length===1?c.colors:null;
 function finish(msg){rebuild();$('qtySec').classList.toggle('hidden',useQty);$('cfgH').textContent=(useQty?'1':'2')+'. Pack configuration';
- st(msg,'ok');pst('');$('work').classList.remove('hidden');resetOut();poolReport()}
+ st('');pst('');$('work').classList.remove('hidden');resetOut();poolReport()}
 function resetOut(){packs=[];lastDeal=null;syncExp();$('results').classList.add('hidden');$('meta').classList.add('hidden');$('sideCol').classList.add('hidden');$('work').classList.remove('side');$('vMsg').textContent=''}
-function st(m,t){const e=$('loadSt');e.className='st '+(t||'info');e.textContent=m}
+function st(m,t){const e=$('loadSt');e.className='st no-print '+(t||'info');e.textContent=m}
 const stat=(l,v,x='')=>`<div class="stat ${x}"><span>${l}</span><b>${v}</b></div>`;
 function poolReport(){const all=[...pools.Common,...pools.Uncommon,...pools.Rare],m={W:0,U:0,B:0,R:0,G:0};let multi=0,cl=0;
  all.forEach(c=>{const o=monoOf(c);if(o)m[o]++;else if(c.colors)multi++;else cl++});
@@ -497,7 +498,7 @@ function loadJSON(text){const d=JSON.parse(text);if(!d||!Array.isArray(d.cube)||
  if(Array.isArray(d.packs)&&d.packs.length){packs=d.packs;lastDeal=d.deal||null;const k=lastDeal||{};
   meta({seed:k.seed||g.seed||'',att:k.att||0,n:packs.length,cN:k.cN??val('cN'),uN:k.uN??val('uN'),rN:k.rN??val('rN'),ok:true});
   syncExp();leftovers();renderPacks();$('results').classList.remove('hidden')}
- if(d.images)importImages(d.images).then(n=>{if(n)st(msg+' — restored '+n+' card images.','ok')})}
+ if(d.images)importImages(d.images)}
 function syncExp(){$('exp').disabled=!cube.length;document.querySelectorAll('#expMenu [data-exp]').forEach(b=>b.disabled=b.dataset.exp!=='json'&&!packs.length);if(!cube.length)$('expMenu').hidden=true}
 async function fromCobra(){const id=cobraId($('cobraUrl').value),b=$('cobraBtn');
  if(!id)return st('Paste a Cube Cobra cube URL or ID (e.g. …/cube/list/your-id).','err');
