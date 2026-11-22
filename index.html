@@ -16,8 +16,11 @@
 :root{--ink:#14161a;--panel:#1e2229;--line:#343a44;--mute:#9aa3b0;--amber:#f2a93b;--bench:#2a2f38;--tx:#e8eaee;--ok:#8fd694;--bad:#ff7b7b}
 *{box-sizing:border-box}[hidden]{display:none!important}.hidden{display:none!important}
 body{margin:0;background:var(--bench);color:var(--tx);font:14px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
-header.top{flex-wrap:wrap;position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:flex-start;gap:8px 10px;padding:10px 16px;background:var(--ink);border-bottom:2px solid var(--amber)}
-h1{margin:0;font:800 17px/1.1 "Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+header.top{flex-wrap:wrap;position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:10px 16px;background:var(--ink);border-bottom:2px solid var(--amber)}
+h1{margin:0;font:800 17px/1 "Arial Narrow","Franklin Gothic Medium",Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+/* header controls use the browser-default control font, exactly like Card Forge, so both bars come out the same height */
+header.top button,header.top input{font:revert;min-height:0}header.top button{font-weight:700}
+header.top input{padding:8px 10px;background:var(--panel);border-radius:4px}
 .urlwrap{flex:1;min-width:240px;display:flex}.urlwrap input{flex:1;min-width:0}
 .expwrap{position:relative}#expMenu{position:absolute;right:0;top:100%;margin-top:4px;z-index:30;min-width:210px;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.45);overflow:hidden}
 #expMenu button{display:block;width:100%;text-align:left;border-radius:0;background:transparent;color:var(--tx);font-weight:600}#expMenu button:hover:not(:disabled){background:var(--bench);filter:none}
